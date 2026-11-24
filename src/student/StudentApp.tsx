@@ -70,7 +70,7 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   const [monthCheck, setMonthCheck] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [duty, setDuty] = useState<{ duty: string; service1: string; service2: string; hours: number } | null>(null);
-  const [allDuties, setAllDuties] = useState<{ student_no: string; name: string; duty: string }[] | null>(null);
+  const [allDuties, setAllDuties] = useState<{ student_no: string; name: string; duty: string; service1: string; service2: string; hours: number }[] | null>(null);
   const [showDuties, setShowDuties] = useState(false);
   const [nextClean, setNextClean] = useState<CleanSlot | null>(null);
   useEffect(() => {
@@ -156,11 +156,35 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
         )}
         <button className="btn-outline btn-sm mt-3" onClick={openDuties}>{showDuties ? "닫기" : "우리 반 1인 1역 전체 보기"}</button>
         {showDuties && (
-          <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-            {(allDuties ?? []).map((x) => (
-              <li key={x.student_no} className={`flex gap-2 ${x.name === me.name ? "font-bold text-brand" : ""}`}><span className="w-14 shrink-0">{x.name}</span><span className={x.duty ? "" : "text-muted"}>{x.duty || "-"}</span></li>
-            ))}
-          </ul>
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <b>1-7 역할 분담표</b>
+              <span className="text-[11px] text-muted">( ) 안 숫자 = 봉사시간</span>
+            </div>
+            <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
+              {(allDuties ?? []).map((x) => {
+                const isMe = x.name === me.name;
+                return (
+                  <li key={x.student_no} className={`flex gap-3 px-3 py-2.5 ${isMe ? "bg-brand-soft" : ""}`}>
+                    <span className="w-6 shrink-0 pt-0.5 text-right text-xs text-muted">{Number(x.student_no.slice(-2))}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <b className={isMe ? "text-brand" : ""}>{x.name}</b>
+                        {x.duty ? <span className="chip">{x.duty}</span> : <span className="text-xs text-muted">1인 1역 없음</span>}
+                      </div>
+                      {(x.service1 || x.service2) && (
+                        <div className="mt-1 space-y-0.5 text-xs text-stone-600">
+                          {x.service1 && <p><span className="mr-1 font-semibold text-muted">1학기</span>{x.service1}</p>}
+                          {x.service2 && <p><span className="mr-1 font-semibold text-muted">2학기</span>{x.service2}</p>}
+                        </div>
+                      )}
+                    </div>
+                    <span className={`shrink-0 self-center rounded-lg px-2 py-1 text-xs font-bold ${x.hours ? "bg-amber-100 text-amber-800" : "bg-stone-100 text-stone-400"}`}>{x.hours}시간</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </section>
 
