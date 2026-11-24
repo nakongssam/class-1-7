@@ -1,0 +1,6 @@
+-- 008: 스터디 그룹 과목별 멘토 (DB에 적용 완료)
+-- study_group_subjects(group_id, subject, mentor_id) : 과목마다 멘토 지정(없으면 함께 공부)
+-- study_logs.mentor_id : 일지마다 그날의 멘토(과목 기본값, 변경 가능)
+-- create_study_group(_name,_plan,_schedule,_expected,_members,_subjects jsonb,_target)
+-- list_study_groups() 에 subjects jsonb [{subject, mentor_id, mentor_name}] 추가
+-- set_group_subject(_group,_subject,_mentor,_remove)

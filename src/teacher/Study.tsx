@@ -50,7 +50,7 @@ export default function StudyTeacher() {
                   return (
                     <tr key={s.id} className={warn ? "bg-rose-50/60" : ""}>
                       <td className="text-muted">{s.student_no}</td><td>{s.name}</td>
-                      <td className="text-xs">{gs.map((g) => `${g.name}(${g.members.find((m) => m.id === s.id)?.role === "mentor" ? "멘토" : "멘티"})`).join(", ") || <span className="text-muted">없음</span>}</td>
+                      <td className="text-xs">{gs.map((g) => { const ms = g.subjects?.filter((x) => x.mentor_id === s.id).map((x) => x.subject) ?? []; return `${g.name}${ms.length ? `(${ms.join("·")} 멘토)` : ""}`; }).join(", ") || <span className="text-muted">없음</span>}</td>
                       <td>{confirmedMin ? hm(confirmedMin) : "-"}</td><td>{logs.length}</td>
                       <td>{last ?? "-"}{warn && " ⚠"}</td>
                       <td><button className="btn-outline btn-sm" onClick={() => { setSelected(s.id); setSub("생기부 초안"); }}>기록·초안</button></td>

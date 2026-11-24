@@ -5,13 +5,14 @@ import { errMsg, todayStr } from "../lib/util";
 import { Empty, Progress, Section, Tabs, useToast } from "../ui/kit";
 
 export type StudyMember = { id: string; name: string; student_no: string; role: "mentor" | "mentee"; status: string };
+export type StudySubject = { subject: string; mentor_id: string | null; mentor_name: string | null };
 export type StudyGroup = {
   id: string; name: string; plan: string; schedule: string; expected_result: string; target_minutes: number; status: string;
-  creator_id: string; members: StudyMember[]; total_minutes: number; log_count: number; pending_count: number; created_at: string;
+  creator_id: string; members: StudyMember[]; subjects: StudySubject[]; total_minutes: number; log_count: number; pending_count: number; created_at: string;
 };
 export type StudyLog = {
   id: string; group_id: string; author_id: string; activity_date: string; minutes: number; subject: string; content: string;
-  reflection: string; status: string; photo_paths: string[]; created_at: string; photos?: string[];
+  reflection: string; status: string; photo_paths: string[]; created_at: string; mentor_id: string | null; photos?: string[];
 };
 
 export const hm = (m: number) => `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}`;
@@ -41,7 +42,12 @@ export function GroupCard({ g, children }: { g: StudyGroup; children?: React.Rea
   return (
     <article className="rounded-xl border border-line bg-white p-4">
       <h3 className="font-bold">👥 {g.name}</h3>
-      <p className="mt-1 text-sm">{g.members?.map((m) => `${m.name}${m.role === "mentor" ? "(멘토)" : ""}`).join(", ")}</p>
+      <p className="mt-1 text-sm">{g.members?.map((m) => m.name).join(", ")}</p>
+      {g.subjects?.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {g.subjects.map((x) => <span key={x.subject} className="chip-gray">{x.subject} · {x.mentor_name ? `멘토 ${x.mentor_name}` : "함께"}</span>)}
+        </div>
+      )}
       <dl className="mt-3 space-y-2 text-sm">
         {[["활동 내용", g.plan], ["활동 시간", g.schedule], ["기대되는 결과", g.expected_result]].map(([k, v]) => (
           <div key={k}><dt className="text-xs text-muted">{k}</dt><dd className="whitespace-pre-wrap">{v}</dd></div>
@@ -66,7 +72,7 @@ export function LogCard({ log, group, action }: { log: StudyLog; group?: StudyGr
           <span className={log.status === "confirmed" ? "chip" : "chip-warn"}>{log.status === "confirmed" ? "확정" : "확인 대기"}</span></div>
         <div className="flex gap-2">{action}</div>
       </div>
-      <p className="mt-1.5 text-xs text-muted">{group?.name} · {author?.name} 작성 · {hm(log.minutes)}</p>
+      <p className="mt-1.5 text-xs text-muted">{group?.name} · {author?.name} 작성 · {hm(log.minutes)} · {log.mentor_id ? `멘토 ${group?.members?.find((m) => m.id === log.mentor_id)?.name ?? ""}` : "함께 공부"}</p>
       <p className="mt-2 whitespace-pre-wrap text-sm">{log.content}</p>
       {log.reflection && <p className="mt-2 whitespace-pre-wrap border-l-2 border-brand pl-3 text-sm text-muted">{log.reflection}</p>}
       {!!log.photos?.length && (
@@ -179,43 +185,55 @@ export default function StudyStudent({ me }: { me: Me }) {
 
 function Apply({ me, classmates, onSaved }: { me: Me; classmates: { id: string; name: string; student_no: string }[]; onSaved: () => void }) {
   const toast = useToast();
-  const [f, setF] = useState({ name: "", plan: "", schedule: "", expected: "", target: 10, mentor: me.id });
+  const [f, setF] = useState({ name: "", plan: "", schedule: "", expected: "", target: 10 });
   const [members, setMembers] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<{ subject: string; mentor: string }[]>([{ subject: "", mentor: me.id }]);
   const [busy, setBusy] = useState(false);
+  const pool = classmates.filter((p) => p.id === me.id || members.includes(p.id));
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const subs = subjects.map((x) => ({ subject: x.subject.trim(), mentor: pool.some((p) => p.id === x.mentor) ? x.mentor : "" })).filter((x) => x.subject);
+    if (!subs.length) return toast("함께 공부할 과목을 하나 이상 적어 주세요.", "err");
     setBusy(true);
     const { error } = await supabase.rpc("create_study_group", {
-      _name: f.name, _plan: f.plan, _schedule: f.schedule, _expected: f.expected, _members: members, _mentor: f.mentor, _target: Math.round(f.target * 60),
+      _name: f.name, _plan: f.plan, _schedule: f.schedule, _expected: f.expected, _members: members, _subjects: subs, _target: Math.round(f.target * 60),
     });
     setBusy(false);
     if (error) return toast(errMsg(error), "err");
     toast("그룹을 신청했어요. 멤버 모두가 수락하면 시작돼요.");
     onSaved();
   };
-  const pickable = classmates.filter((p) => p.id !== me.id);
   return (
     <form onSubmit={submit} className="space-y-4">
       <div><label className="label" htmlFor="gn">그룹 이름</label><input id="gn" className="input" required maxLength={80} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
       <fieldset>
         <legend className="label">함께할 친구 (나 포함 {members.length + 1}명)</legend>
         <div className="grid max-h-60 grid-cols-2 gap-1.5 overflow-auto rounded-xl border border-line bg-white p-3 sm:grid-cols-3">
-          {pickable.map((p) => (
+          {classmates.filter((p) => p.id !== me.id).map((p) => (
             <label key={p.id} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={members.includes(p.id)} onChange={(e) => {
-                const next = e.target.checked ? [...members, p.id] : members.filter((x) => x !== p.id);
-                setMembers(next);
-                if (!next.includes(f.mentor) && f.mentor !== me.id) setF({ ...f, mentor: me.id });
-              }} />{p.name}
+              <input type="checkbox" checked={members.includes(p.id)} onChange={(e) => setMembers(e.target.checked ? [...members, p.id] : members.filter((x) => x !== p.id))} />{p.name}
             </label>
           ))}
         </div>
       </fieldset>
-      <div><label className="label" htmlFor="mt">멘토</label>
-        <select id="mt" className="input" value={f.mentor} onChange={(e) => setF({ ...f, mentor: e.target.value })}>
-          {classmates.filter((p) => p.id === me.id || members.includes(p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}{p.id === me.id ? " (나)" : ""}</option>)}
-        </select></div>
-      {([["plan", "활동 내용", "예: 한국사 통사 공부"], ["schedule", "활동 시간", "예: 화·목 점심시간 30분씩"], ["expected", "기대되는 결과", "예: 시험 점수 10점 이상 올리기"]] as const).map(([k, l, ph]) => (
+      <fieldset>
+        <legend className="label">과목별 멘토</legend>
+        <p className="-mt-1 mb-2 text-xs text-muted">과목마다 가르쳐 줄 친구를 정해요. 서로 같이 공부하는 과목은 '멘토 없이 함께'를 고르세요.</p>
+        <div className="space-y-2">
+          {subjects.map((x, i) => (
+            <div key={i} className="flex gap-2">
+              <input className="input" placeholder="과목 (예: 수학)" maxLength={30} value={x.subject} onChange={(e) => setSubjects(subjects.map((y, j) => (j === i ? { ...y, subject: e.target.value } : y)))} />
+              <select className="input max-w-44" value={x.mentor} onChange={(e) => setSubjects(subjects.map((y, j) => (j === i ? { ...y, mentor: e.target.value } : y)))} aria-label="멘토">
+                {pool.map((p) => <option key={p.id} value={p.id}>멘토: {p.name}{p.id === me.id ? " (나)" : ""}</option>)}
+                <option value="">멘토 없이 함께</option>
+              </select>
+              {subjects.length > 1 && <button type="button" className="btn-outline btn-sm" aria-label="과목 지우기" onClick={() => setSubjects(subjects.filter((_, j) => j !== i))}>✕</button>}
+            </div>
+          ))}
+        </div>
+        <button type="button" className="btn-outline btn-sm mt-2" onClick={() => setSubjects([...subjects, { subject: "", mentor: me.id }])}>+ 과목 추가</button>
+      </fieldset>
+      {([["plan", "활동 내용", "예: 수학은 민준이가 문제 풀이 설명, 영어는 서연이가 단어 퀴즈"], ["schedule", "활동 시간", "예: 화·목 점심시간 30분씩"], ["expected", "기대되는 결과", "예: 시험 점수 10점 이상 올리기"]] as const).map(([k, l, ph]) => (
         <div key={k}><label className="label">{l}</label><textarea className="input min-h-20" required maxLength={2000} placeholder={ph} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>
       ))}
       <div><label className="label" htmlFor="tg">목표 공부 시간 (시간)</label><input id="tg" className="input max-w-32" type="number" min={1} max={1000} value={f.target} onChange={(e) => setF({ ...f, target: Number(e.target.value) })} /></div>
@@ -224,33 +242,53 @@ function Apply({ me, classmates, onSaved }: { me: Me; classmates: { id: string; 
   );
 }
 
+// 휴대폰 사진은 크기가 커서 긴 변 1600px JPEG로 줄여 올린다
+async function shrinkImage(file: File): Promise<Blob> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("이미지 변환 실패"))), "image/jpeg", 0.85));
+  } catch { return file; }
+}
+
 function LogForm({ groups, me, onSaved }: { groups: StudyGroup[]; me: Me; onSaved: () => void }) {
   const toast = useToast();
-  const [f, setF] = useState({ group: "", date: todayStr(), minutes: 30, subject: "", content: "", reflection: "" });
+  const [f, setF] = useState({ group: "", date: todayStr(), minutes: 30, subject: "", custom: "", mentor: "", content: "", reflection: "" });
   const [files, setFiles] = useState<File[]>([]);
   const [fileKey, setFileKey] = useState(0);
   const [busy, setBusy] = useState(false);
-  const groupId = groups.some((g) => g.id === f.group) ? f.group : groups[0]?.id ?? "";
-  if (!groups.length) return <Empty>결성된 그룹이 있어야 일지를 쓸 수 있어요. '그룹 신청'에서 시작해 보세요.</Empty>;
+  const g = groups.find((x) => x.id === f.group) ?? groups[0];
+  if (!g) return <Empty>결성된 그룹이 있어야 일지를 쓸 수 있어요. '그룹 신청'에서 시작해 보세요.</Empty>;
+  const members = g.members.filter((m) => m.status === "accepted");
+  const subject = f.subject === "__custom" ? f.custom.trim() : f.subject || g.subjects[0]?.subject || "";
+  const pickSubject = (v: string) => {
+    const def = g.subjects.find((x) => x.subject === v);
+    setF({ ...f, subject: v, mentor: def ? def.mentor_id ?? "" : f.mentor });
+  };
+  const mentor = f.subject === "" && g.subjects[0] ? (g.subjects[0].mentor_id ?? "") : f.mentor;
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!subject) return toast("과목을 골라 주세요.", "err");
     setBusy(true);
     const paths: string[] = [];
     try {
       for (const file of files) {
-        const ext = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
-        const path = `${groupId}/${me.id}/${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from("study-photos").upload(path, file, { contentType: file.type });
+        const blob = await shrinkImage(file);
+        const path = `${g.id}/${me.id}/${crypto.randomUUID()}.jpg`;
+        const up = await supabase.storage.from("study-photos").upload(path, blob, { contentType: blob.type || "image/jpeg" });
         if (up.error) throw up.error;
         paths.push(path);
       }
       const { error } = await supabase.from("study_logs").insert({
-        group_id: groupId, author_id: me.id, activity_date: f.date, minutes: f.minutes, subject: f.subject.trim(),
-        content: f.content.trim(), reflection: f.reflection.trim(), photo_paths: paths,
+        group_id: g.id, author_id: me.id, activity_date: f.date, minutes: f.minutes, subject,
+        mentor_id: mentor || null, content: f.content.trim(), reflection: f.reflection.trim(), photo_paths: paths,
       });
       if (error) throw error;
       toast("활동일지를 저장했어요. 그룹 친구가 확인하면 확정돼요.");
-      setF({ ...f, subject: "", content: "", reflection: "" }); setFiles([]); setFileKey((k) => k + 1);
+      setF({ ...f, content: "", reflection: "" }); setFiles([]); setFileKey((k) => k + 1);
       onSaved();
     } catch (err) {
       if (paths.length) await supabase.storage.from("study-photos").remove(paths);
@@ -259,23 +297,34 @@ function LogForm({ groups, me, onSaved }: { groups: StudyGroup[]; me: Me; onSave
   };
   return (
     <form onSubmit={submit} className="space-y-3">
-      <select className="input" value={groupId} onChange={(e) => setF({ ...f, group: e.target.value })} aria-label="활동 그룹">{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
+      {groups.length > 1 && <select className="input" value={g.id} onChange={(e) => setF({ ...f, group: e.target.value, subject: "", mentor: "" })} aria-label="활동 그룹">{groups.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>}
       <div className="grid grid-cols-2 gap-3">
         <div><label className="label">날짜</label><input type="date" required className="input" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
         <div><label className="label">공부 시간 (분)</label><input type="number" required min={1} max={1440} className="input" value={f.minutes} onChange={(e) => setF({ ...f, minutes: Number(e.target.value) })} /></div>
       </div>
-      <div><label className="label">과목</label><input className="input" required value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="label">과목</label>
+          <select className="input" value={f.subject || g.subjects[0]?.subject || "__custom"} onChange={(e) => pickSubject(e.target.value)}>
+            {g.subjects.map((x) => <option key={x.subject} value={x.subject}>{x.subject}</option>)}
+            <option value="__custom">기타 (직접 입력)</option>
+          </select>
+          {(f.subject === "__custom" || !g.subjects.length) && <input className="input mt-2" placeholder="과목 이름" value={f.custom} onChange={(e) => setF({ ...f, subject: "__custom", custom: e.target.value })} />}
+        </div>
+        <div><label className="label">오늘의 멘토</label>
+          <select className="input" value={mentor} onChange={(e) => setF({ ...f, subject: f.subject || g.subjects[0]?.subject || "", mentor: e.target.value })}>
+            {members.map((m) => <option key={m.id} value={m.id}>{m.name}{m.id === me.id ? " (나)" : ""}</option>)}
+            <option value="">멘토 없이 함께</option>
+          </select>
+        </div>
+      </div>
       <div><label className="label">활동 내용</label><textarea className="input min-h-24" required value={f.content} onChange={(e) => setF({ ...f, content: e.target.value })} /></div>
       <div><label className="label">느낀 점</label><textarea className="input min-h-20" value={f.reflection} onChange={(e) => setF({ ...f, reflection: e.target.value })} /></div>
-      <div><label className="label">📷 인증 사진 (선택)</label>
-        <input key={fileKey} type="file" accept="image/jpeg,image/png,image/webp" multiple className="block w-full text-sm"
-          onChange={(e) => {
-            const chosen = Array.from(e.target.files ?? []);
-            if (chosen.some((x) => x.size > 10 * 1024 * 1024)) { toast("사진은 한 장에 10MB 이내로 올려 주세요.", "err"); e.target.value = ""; return setFiles([]); }
-            setFiles(chosen);
-          }} />
+      <div><label className="label">📷 인증 사진 (선택, 여러 장 가능)</label>
+        <input key={fileKey} type="file" accept="image/*" multiple className="block w-full text-sm"
+          onChange={(e) => setFiles(Array.from(e.target.files ?? []).filter((x) => x.type.startsWith("image/")).slice(0, 6))} />
+        {files.length > 0 && <p className="mt-1 text-xs text-muted">사진 {files.length}장 선택됨 · 휴대폰에서는 바로 카메라로 찍을 수도 있어요</p>}
       </div>
-      <button className="btn w-full" disabled={busy || !groupId}>{busy ? "저장 중…" : "활동일지 저장"}</button>
+      <button className="btn w-full" disabled={busy}>{busy ? "사진 올리고 저장 중…" : "활동일지 저장"}</button>
     </form>
   );
 }

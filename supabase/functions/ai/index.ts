@@ -65,7 +65,7 @@ const DRAFT = `당신은 한국 고등학교 담임교사로서 학교생활기�
 규칙:
 - 학생 이름이나 주어 없이 문장을 시작하고, 반드시 '~함', '~임', '~보임' 등 생활기록부 명사형 종결 문체로 씀.
 - 공백 포함 500자 이내의 한 문단으로 작성.
-- 교내 스터디그룹(멘토-멘티) 학습 활동에서 드러난 구체적 행동, 성장, 태도를 근거로 서술.
+- 교내 스터디그룹(과목별 멘토-멘티) 학습 활동에서 드러난 구체적 행동, 성장, 태도를 근거로 서술. 멘토로 가르친 과목과 멘티로 배운 과목을 구분해 서술.
 - 교외 활동, 대학명, 기관명, 부모(가족)의 직업·정보는 절대 언급하지 않음.
 - 과장 없이 기록에 근거한 사실만 사용. 제목, 따옴표, 목록 기호 없이 본문만 출력.`;
 
@@ -193,16 +193,21 @@ Deno.serve(async (req) => {
       const mine = ((groups ?? []) as { id: string; name: string; members: Member[] }[])
         .filter((g) => g.members?.some((m) => m.id === studentId && m.status === "accepted"));
       if (!mine.length) return json({ ok: false, error: "참여한 스터디그룹이 없어요." });
-      const { data: logs } = await sb.from("study_logs").select("id, group_id, author_id, activity_date, minutes, subject, content, reflection")
+      const { data: logs } = await sb.from("study_logs").select("id, group_id, author_id, mentor_id, activity_date, minutes, subject, content, reflection")
         .in("group_id", mine.map((g) => g.id)).eq("status", "confirmed").order("activity_date");
       if (!logs?.length) return json({ ok: false, error: "확정된 활동 일지가 없어요." });
       const { data: notes } = await sb.from("study_log_notes").select("log_id, note").in("log_id", logs.map((l) => l.id));
       const noteMap = new Map((notes ?? []).map((n) => [n.log_id, n.note]));
-      const roles = mine.map((g) => `${g.name}: ${g.members.find((m) => m.id === studentId)?.role === "mentor" ? "멘토" : "멘티"}`).join(", ");
+      type Sub = { subject: string; mentor_id: string | null };
+      const roles = (mine as unknown as { name: string; subjects: Sub[] }[]).map((g) => {
+        const ms = (g.subjects ?? []).filter((x) => x.mentor_id === studentId).map((x) => x.subject);
+        return `${g.name}: ${ms.length ? `${ms.join("·")} 과목 멘토` : "멘티로 참여"}`;
+      }).join(", ");
       const lines = logs.map((l, i) => {
         const g = mine.find((x) => x.id === l.group_id);
         const note = noteMap.get(l.id);
-        return `${i + 1}. [${l.activity_date}] ${g?.name} · 과목: ${l.subject} · ${l.minutes}분\n활동: ${l.content}\n느낀 점(${l.author_id === studentId ? "본인 작성" : "그룹원 작성"}): ${l.reflection}${note ? `\n교사 관찰: ${note}` : ""}`;
+        const role = !l.mentor_id ? "함께 공부" : l.mentor_id === studentId ? "이 학생이 멘토" : "이 학생이 멘티";
+        return `${i + 1}. [${l.activity_date}] ${g?.name} · 과목: ${l.subject} · ${l.minutes}분 · ${role}\n활동: ${l.content}\n느낀 점(${l.author_id === studentId ? "본인 작성" : "그룹원 작성"}): ${l.reflection}${note ? `\n교사 관찰: ${note}` : ""}`;
       }).join("\n\n");
       let content = await claude(DRAFT, `그룹 내 역할: ${roles}\n확정된 활동 기록:\n\n${lines}`, DRAFT_MODELS, 1200);
       if (content.length > 500) content = content.slice(0, 500);
