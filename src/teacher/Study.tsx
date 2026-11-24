@@ -43,7 +43,7 @@ export default function StudyTeacher() {
   const giveReward = async (studentId: string, round: number, give: boolean) => {
     const { error } = give
       ? await supabase.from("study_rewards").insert({ student_id: studentId, round })
-      : await supabase.from("study_rewards").delete().eq("student_id", studentId).eq("round", round);
+      : await supabase.from("study_rewards").delete().eq("student_id", studentId);
     if (error) return toast(errMsg(error), "err");
     load();
   };
@@ -54,8 +54,7 @@ export default function StudyTeacher() {
     toast(`보상 기준을 일지 ${n}건으로 바꿨어요.`); load();
   };
   const waiting = d.classmates.filter((s) => {
-    const r = Math.floor(myConfirmedCount(d.logs, s.id) / d.rewardTarget);
-    return Array.from({ length: r }, (_, i) => i + 1).some((x) => !d.rewards.some((w) => w.student_id === s.id && w.round === x));
+    return myConfirmedCount(d.logs, s.id) >= d.rewardTarget && !d.rewards.some((w) => w.student_id === s.id);
   });
 
   return (
@@ -67,7 +66,7 @@ export default function StudyTeacher() {
             <span>🏅 보상 기준: 본인이 쓴 <b>활동일지</b></span>
             <input type="number" min={1} max={100} defaultValue={d.rewardTarget} key={d.rewardTarget} className="input w-20 py-1 text-sm" aria-label="보상 기준 건수"
               onBlur={(e) => Number(e.target.value) !== d.rewardTarget && setTarget(Number(e.target.value))} />
-            <span>건마다 1회</span>
+            <span>건 달성 시 1회</span>
             <span className="ml-auto">{waiting.length ? <>지급 대기 <b className="text-brand">{waiting.length}명</b>: {waiting.map((s) => s.name).join(", ")}</> : "지급 대기 없음"}</span>
           </div>
           <div className="overflow-x-auto">
@@ -88,18 +87,11 @@ export default function StudyTeacher() {
                       <td>{last ?? "-"}{warn && " ⚠"}</td>
                       <td className="text-xs">{(() => {
                         const n = myConfirmedCount(d.logs, s.id);
-                        const rounds = Math.floor(n / d.rewardTarget);
-                        return (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className="text-muted">{n % d.rewardTarget}/{d.rewardTarget}</span>
-                            {Array.from({ length: rounds }, (_, i) => i + 1).map((r) => {
-                              const given = d.rewards.some((w) => w.student_id === s.id && w.round === r);
-                              return given
-                                ? <button key={r} className="chip" title="누르면 지급 취소" onClick={() => window.confirm(`${s.name} ${r}회차 보상 지급을 취소할까요?`) && giveReward(s.id, r, false)}>{r}회 ✓</button>
-                                : <button key={r} className="btn btn-sm" onClick={() => giveReward(s.id, r, true)}>{r}회 지급</button>;
-                            })}
-                          </div>
-                        );
+                        const given = d.rewards.some((w) => w.student_id === s.id);
+                        if (n < d.rewardTarget) return <span className="text-muted">{n}/{d.rewardTarget}</span>;
+                        return given
+                          ? <button className="chip" title="누르면 지급 취소" onClick={() => window.confirm(`${s.name} 보상 지급을 취소할까요?`) && giveReward(s.id, 1, false)}>지급 완료 ✓</button>
+                          : <button className="btn btn-sm" onClick={() => giveReward(s.id, 1, true)}>달성 · 지급</button>;
                       })()}</td>
                       <td><button className="btn-outline btn-sm" onClick={() => { setSelected(s.id); setSub("생기부 초안"); }}>기록·초안</button></td>
                     </tr>

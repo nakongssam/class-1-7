@@ -45,8 +45,8 @@ export async function loadStudy() {
 export const myConfirmedCount = (logs: StudyLog[], id: string) => logs.filter((l) => l.author_id === id).length;
 
 function StampBoard({ count, target }: { count: number; target: number }) {
-  const rounds = Math.floor(count / target);
-  const cur = count - rounds * target;
+  const done = count >= target;
+  const cur = Math.min(count, target);
   return (
     <div>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
@@ -58,7 +58,7 @@ function StampBoard({ count, target }: { count: number; target: number }) {
       </div>
       <p className="mt-3 text-sm">
         내가 쓴 일지 <b className="text-brand">{count}건</b>
-        {rounds > 0 ? <> · 🎉 <b>{rounds}번</b> 달성!</> : <> · 달성까지 <b>{target - cur}건</b> 남았어요</>}
+        {done ? <> · 🎉 <b>달성!</b></> : <> · 달성까지 <b>{target - cur}건</b> 남았어요</>}
       </p>
       <p className="mt-1 text-xs text-muted">도장 {target}개, 도전!</p>
     </div>
