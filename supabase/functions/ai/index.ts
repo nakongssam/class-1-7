@@ -7,6 +7,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const admin = createClient(URL_, SERVICE, { auth: { persistSession: false } });
 const MODELS = (Deno.env.get("CLAUDE_MODELS") ?? "claude-haiku-5-5,claude-sonnet-5-5,claude-haiku-4-5,claude-sonnet-4-5")
   .split(",").map((m) => m.trim()).filter(Boolean);
 const DRAFT_MODELS = (Deno.env.get("CLAUDE_DRAFT_MODELS") ?? "claude-sonnet-5-5,claude-sonnet-4-5,claude-haiku-5-5,claude-haiku-4-5")
@@ -67,6 +69,36 @@ const DRAFT = `당신은 한국 고등학교 담임교사로서 학교생활기�
 - 교외 활동, 대학명, 기관명, 부모(가족)의 직업·정보는 절대 언급하지 않음.
 - 과장 없이 기록에 근거한 사실만 사용. 제목, 따옴표, 목록 기호 없이 본문만 출력.`;
 
+const NORMALIZE = `학생들이 반 친구의 강점으로 적은 표현 목록을 받는다. 각 표현을 집계하기 좋은 짧은 표준 강점 키워드로 정리해.
+규칙:
+- 키워드는 2~8글자의 명사형으로 통일 (예: 착함, 성실함, 배려심, 리더십, 키가 큼, 노래 실력, 공부를 잘함, 유머, 친절함, 책임감, 예쁨).
+- 뜻이 같으면 같은 키워드로 묶음: 착하다/착함/착하당/촥하돠 → 착함, 예쁘다/이쁘다/이뿌다 → 예쁨, 키가크다/키가 크다 → 키가 큼.
+- 한 표현에 강점이 여러 개면 나눔: "1.공부 잘함 2.착함 3.이쁘게 생김" → ["공부를 잘함","착함","예쁨"].
+- '기존 키워드' 목록에 같은 뜻이 있으면 반드시 그 키워드를 그대로 씀.
+- 뜻을 알 수 없거나 강점이 아닌 표현은 원문을 그대로 하나만 둠.
+반드시 JSON 객체 하나만 출력: {"원래 표현": ["키워드", ...], ...} — 받은 표현을 하나도 빠짐없이 키로 넣음.`;
+
+async function normalizeRaws(raws: string[]): Promise<number> {
+  const todo = [...new Set(raws.map((r) => r.trim()).filter(Boolean))];
+  if (!todo.length) return 0;
+  const { data: existing } = await admin.from("relay_strength_map").select("tags");
+  const vocab = [...new Set((existing ?? []).flatMap((r) => r.tags as string[]))];
+  let done = 0;
+  for (let i = 0; i < todo.length; i += 100) {
+    const chunk = todo.slice(i, i + 100);
+    const out = parseJson<Record<string, string[]>>(await claude(NORMALIZE,
+      `기존 키워드: ${vocab.join(", ") || "(없음)"}\n\n정리할 표현:\n${chunk.map((r) => `- ${r}`).join("\n")}`, chunk.length <= 10 ? MODELS : DRAFT_MODELS, 6000));
+    const rows = chunk.map((raw) => {
+      const tags = (Array.isArray(out[raw]) ? out[raw] : [raw]).map((t) => String(t).trim()).filter(Boolean).slice(0, 5);
+      tags.forEach((t) => { if (!vocab.includes(t)) vocab.push(t); });
+      return { raw, tags: tags.length ? tags : [raw], updated_at: new Date().toISOString() };
+    });
+    await admin.from("relay_strength_map").upsert(rows);
+    done += rows.length;
+  }
+  return done;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const auth = req.headers.get("Authorization") ?? "";
@@ -120,11 +152,31 @@ Deno.serve(async (req) => {
         ai_flagged: flagged, ai_reason: flagged ? reason : null,
       });
       if (error) return json({ ok: false, error: error.code === "23505" ? "이 주인공에게는 이미 편지를 보냈어요." : "저장하지 못했어요." });
+      try {
+        const { data: known } = await admin.from("relay_strength_map").select("raw").in("raw", strengths);
+        const fresh = strengths.filter((x) => !(known ?? []).some((k) => k.raw === x));
+        if (fresh.length) await normalizeRaws(fresh);
+      } catch (_e) { /* 강점 정리는 나중에 교사 화면에서 다시 할 수 있음 */ }
       return json({ ok: true });
     }
 
     const { data: isTeacher } = await sb.rpc("is_teacher");
     if (!isTeacher) return json({ ok: false, error: "선생님만 사용할 수 있어요." }, 403);
+
+    if (action === "normalize_strengths") {
+      const { data: msgs } = await admin.from("relay_messages").select("strengths");
+      const all = [...new Set((msgs ?? []).flatMap((m) => m.strengths as string[]).map((x) => x.trim()).filter(Boolean))];
+      let todo = all;
+      if (!body.all) {
+        const { data: known } = await admin.from("relay_strength_map").select("raw");
+        const k = new Set((known ?? []).map((r) => r.raw));
+        todo = all.filter((x) => !k.has(x));
+      } else {
+        await admin.from("relay_strength_map").delete().neq("raw", "");
+      }
+      const n = await normalizeRaws(todo.slice(0, 100)); // 한 번에 100개씩 (시간 제한 때문에 화면에서 반복 호출)
+      return json({ ok: true, count: n, remaining: Math.max(0, todo.length - n), total: all.length });
+    }
 
     if (action === "soften") {
       const text = String(body.body ?? "").slice(0, 1000);

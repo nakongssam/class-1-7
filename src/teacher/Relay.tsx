@@ -4,6 +4,7 @@ import { callFn, supabase, type Student } from "../lib/supabase";
 import { errMsg, formatDay, weekStart } from "../lib/util";
 import { Empty, Loading, Progress, Section, Tabs, useToast } from "../ui/kit";
 import { StrengthCloud } from "../student/Relay";
+import { countStrengths, loadStrengthMap, useStrengthMap } from "../lib/strengths";
 
 type Msg = {
   id: string; day: string; target_student_id: string; author_student_id: string; strengths: string[]; body: string;
@@ -12,7 +13,7 @@ type Msg = {
 type Sched = { day: string; student_id: string; published: boolean };
 type D = { students: Student[]; schedule: Sched[]; activities: { day: string; student_id: string }[]; msgs: Msg[] };
 
-const SUB = ["현황", "편지 검토", "이번 주 주인공", "결과 공개·인쇄"] as const;
+const SUB = ["현황", "편지 검토", "이번 주 주인공", "결과 검토·공개"] as const;
 
 export default function RelayTeacher({ me }: { me: Me }) {
   const toast = useToast();
@@ -35,6 +36,19 @@ export default function RelayTeacher({ me }: { me: Me }) {
     setD({ students: (students ?? []) as Student[], schedule: schedule ?? [], activities: activities ?? [], msgs });
   }, [toast]);
   useEffect(() => { load(); }, [load]);
+  // 아직 정리 안 된 강점 표현이 있으면 조용히 AI 정리 (교사 화면을 열 때 한 번)
+  useEffect(() => {
+    if (!d) return;
+    (async () => {
+      const map = await loadStrengthMap();
+      if (!d.msgs.some((m) => m.strengths.some((r) => r.trim() && !map.has(r.trim())))) return;
+      for (let i = 0; i < 10; i++) {
+        const r = await callFn("ai", { action: "normalize_strengths" });
+        if (!r.ok || !Number(r.remaining)) break;
+      }
+      await loadStrengthMap(true);
+    })();
+  }, [!!d]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <Loading />;
   const pending = d.msgs.filter((m) => m.ai_flagged && m.status === "approved" && !m.teacher_edited).length;
   return (
@@ -43,7 +57,7 @@ export default function RelayTeacher({ me }: { me: Me }) {
       {sub === "현황" && <Dashboard d={d} today={me.today} />}
       {sub === "편지 검토" && <Review d={d} refresh={load} />}
       {sub === "이번 주 주인공" && <Week d={d} today={me.today} refresh={load} />}
-      {sub === "결과 공개·인쇄" && <Reveal d={d} refresh={load} />}
+      {sub === "결과 검토·공개" && <Reveal d={d} refresh={load} />}
     </>
   );
 }
@@ -58,11 +72,10 @@ function Dashboard({ d, today }: { d: D; today: string }) {
   const done = writers.filter((s) => wrote.has(s.id));
   const notYet = writers.filter((s) => !wrote.has(s.id));
   const heroCount = new Set(d.activities.filter((a) => byId.get(a.student_id)?.role === "student").map((a) => a.student_id)).size;
+  const map = useStrengthMap();
   const rows = writers.map((s) => {
     const recv = d.msgs.filter((m) => m.target_student_id === s.id && m.status === "approved");
-    const c = new Map<string, number>();
-    recv.forEach((m) => m.strengths.forEach((w) => c.set(w, (c.get(w) ?? 0) + 1)));
-    return { s, received: recv.length, written: d.msgs.filter((m) => m.author_student_id === s.id).length, top: [...c].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k) };
+    return { s, received: recv.length, written: d.msgs.filter((m) => m.author_student_id === s.id).length, top: countStrengths(recv, map).slice(0, 3) };
   });
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -93,7 +106,7 @@ function Dashboard({ d, today }: { d: D; today: string }) {
             <tbody>{rows.map((r) => (
               <tr key={r.s.id}><td className="text-muted">{r.s.student_no}</td><td>{r.s.name}</td><td>{r.received}</td>
                 <td className={r.written === 0 && heroCount > 2 ? "text-rose" : ""}>{r.written}</td>
-                <td className="space-x-1">{r.top.map((t) => <span key={t} className="chip">{t}</span>)}</td></tr>
+                <td className="space-x-1">{r.top.map(([t, n]) => <span key={t} className="chip">{t} {n}</span>)}</td></tr>
             ))}</tbody>
           </table>
         </div>
@@ -135,6 +148,14 @@ function ReviewItem({ m, from, to, refresh }: { m: Msg; from: string; to: string
     if (error) return toast(errMsg(error), "err");
     toast("반영했어요."); setEditing(false); refresh();
   };
+  const remove = async () => {
+    if (!confirm(`${from} → ${to} 편지를 완전히 삭제할까요? 되돌릴 수 없어요.`)) return;
+    setBusy(true);
+    const { error } = await supabase.from("relay_messages").delete().eq("id", m.id);
+    setBusy(false);
+    if (error) return toast(errMsg(error), "err");
+    toast("삭제했어요."); refresh();
+  };
   const soften = async () => {
     setBusy(true);
     const r = await callFn("ai", { action: "soften", body: m.body });
@@ -174,7 +195,8 @@ function ReviewItem({ m, from, to, refresh }: { m: Msg; from: string; to: string
             <button className="btn-outline btn-sm" onClick={() => setEditing(true)}>직접 수정</button>
             {m.status === "hidden"
               ? <button className="btn-outline btn-sm" onClick={() => update({ status: "approved" })}>결과에 다시 포함</button>
-              : <button className="btn-danger" onClick={() => confirm("이 편지를 학생 편지함과 인쇄 결과에서 제외할까요?") && update({ status: "hidden" })}>결과에서 제외</button>}
+              : <button className="btn-outline btn-sm" onClick={() => confirm("이 편지를 학생 편지함과 인쇄 결과에서 제외할까요? (지우지는 않아요)") && update({ status: "hidden" })}>결과에서 제외</button>}
+            <button className="btn-danger" disabled={busy} onClick={remove}>삭제</button>
           </>
         )}
       </div>
@@ -259,38 +281,105 @@ function Week({ d, today, refresh }: { d: D; today: string; refresh: () => void 
 function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
   const toast = useToast();
   const [printId, setPrintId] = useState<string | "all" | null>(null);
-  const upd = async (ids: string[], revealed: boolean) => {
-    const { error } = await supabase.from("students").update({ revealed }).in("id", ids);
+  const [open, setOpen] = useState<string | null>(null);
+  const [norm, setNorm] = useState("");
+  const people = d.students; // 교사·테스트 계정 포함
+  const byId = new Map(d.students.map((s) => [s.id, s]));
+  const recv = (id: string) => d.msgs.filter((m) => m.target_student_id === id);
+  const withLetters = people.filter((s) => recv(s.id).length > 0);
+  const reviewed = withLetters.filter((s) => s.relay_reviewed_at).length;
+  const revealedN = people.filter((s) => s.revealed).length;
+
+  const upd = async (ids: string[], patch: Partial<Student>, ok: string) => {
+    const { error } = await supabase.from("students").update(patch).in("id", ids);
     if (error) return toast(errMsg(error), "err");
-    toast(revealed ? "공개했어요." : "비공개로 바꿨어요."); refresh();
+    toast(ok); refresh();
   };
-  const people = d.students.filter((s) => s.role !== "test");
-  const count = (id: string) => d.msgs.filter((m) => m.target_student_id === id && m.status === "approved").length;
+  const revealAll = (v: boolean) => {
+    if (v) {
+      const notYet = withLetters.length - reviewed;
+      if (!confirm(`모든 학생에게 받은 강점과 편지를 지금 공개할까요?${notYet ? `\n\n⚠ 아직 검토 완료하지 않은 학생이 ${notYet}명 있어요.` : ""}`)) return;
+    } else if (!confirm("모두 비공개로 바꿀까요?")) return;
+    upd(people.map((s) => s.id), { revealed: v }, v ? "전체 공개했어요." : "모두 비공개로 바꿨어요.");
+  };
+  const normalize = async (all: boolean) => {
+    if (all && !confirm("강점 정리를 처음부터 다시 할까요? 1~2분 걸려요.")) return;
+    let first = true;
+    for (let guard = 0; guard < 20; guard++) {
+      setNorm(guard ? `정리 중… (${guard * 100}개 완료)` : "정리 중…");
+      const r = await callFn("ai", { action: "normalize_strengths", all: all && first });
+      first = false;
+      if (!r.ok) { setNorm(""); return toast(r.error ?? "정리하지 못했어요.", "err"); }
+      if (!Number(r.remaining)) break;
+    }
+    await loadStrengthMap(true);
+    setNorm("");
+    toast("강점을 정리했어요.");
+  };
+
   if (printId) return <PrintView d={d} only={printId === "all" ? null : printId} onClose={() => setPrintId(null)} />;
+  const cur = open ? byId.get(open) : null;
   return (
     <div className="space-y-4">
-      <Section title="강점·편지 결과 공개" right={<div className="flex gap-2">
-        <button className="btn btn-sm" onClick={() => confirm("모든 학생에게 받은 강점과 편지를 지금 공개할까요?") && upd(people.map((s) => s.id), true)}>전체 공개</button>
-        <button className="btn-outline btn-sm" onClick={() => confirm("모두 비공개로 바꿀까요?") && upd(people.map((s) => s.id), false)}>전체 비공개</button>
+      <Section title="결과 공개" right={<div className="flex flex-wrap gap-2">
+        <button className="btn btn-sm" onClick={() => revealAll(true)}>전체 공개</button>
+        <button className="btn-outline btn-sm" onClick={() => revealAll(false)}>전체 비공개</button>
         <button className="btn-outline btn-sm" onClick={() => setPrintId("all")}>🖨 전체 인쇄</button>
       </div>}>
-        <div className="overflow-x-auto">
-          <table className="table min-w-[520px]">
-            <thead><tr><th>학번</th><th>이름</th><th>받은 편지</th><th>결과</th><th></th></tr></thead>
-            <tbody>{people.map((s) => (
-              <tr key={s.id}><td className="text-muted">{s.student_no}</td><td>{s.name}</td><td>{count(s.id)}</td>
-                <td><button className={s.revealed ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => upd([s.id], !s.revealed)}>{s.revealed ? "공개 중 · 닫기" : "공개하기"}</button></td>
-                <td><button className="text-xs underline" onClick={() => setPrintId(s.id)}>인쇄</button></td></tr>
-            ))}</tbody>
-          </table>
+        <p className="text-sm">검토 완료 <b>{reviewed}</b> / {withLetters.length}명 · 공개 중 <b>{revealedN}</b>명</p>
+        <p className="mt-1 text-xs text-muted">선생님이 공개하기 전까지 학생들은 받은 편지를 볼 수 없어요. 학생 이름을 눌러 편지를 하나씩 검토·수정·삭제한 뒤 '검토 완료'를 표시하세요.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+          <button className="btn-outline btn-sm" disabled={!!norm} onClick={() => normalize(false)}>✨ 새 강점 AI 정리</button>
+          <button className="text-xs text-muted underline" disabled={!!norm} onClick={() => normalize(true)}>처음부터 다시 정리</button>
+          {norm && <span className="text-xs text-muted">{norm}</span>}
+          <span className="text-xs text-muted">비슷한 강점(착하다·착함·착하당)을 하나로 묶어 워드클라우드와 TOP 3에 반영해요.</span>
         </div>
       </Section>
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+        <Section title="학생">
+          <ul className="max-h-[70vh] space-y-1 overflow-auto">
+            {people.map((s) => {
+              const n = recv(s.id).length;
+              const flagged = recv(s.id).filter((m) => m.ai_flagged && m.status === "approved" && !m.teacher_edited).length;
+              return (
+                <li key={s.id}>
+                  <button onClick={() => setOpen(s.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${open === s.id ? "bg-brand-soft" : "hover:bg-bg"}`}>
+                    <span>{s.role === "teacher" ? "선생님" : s.name}{s.role === "test" && <span className="chip-warn ml-1">테스트</span>}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs">
+                      {n === 0 ? <span className="text-muted">편지 없음</span> : <>
+                        <span className="text-muted">{n}통</span>
+                        {flagged > 0 && <span className="chip-red">주의 {flagged}</span>}
+                        {s.relay_reviewed_at ? <span className="chip">검토 ✓</span> : <span className="chip-gray">미검토</span>}
+                        {s.revealed && <span className="chip-warn">공개</span>}
+                      </>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+        {cur ? (
+          <div className="space-y-3">
+            <Section title={`${cur.role === "teacher" ? "선생님" : cur.name}이(가) 받은 편지 ${recv(cur.id).length}통`} right={<div className="flex flex-wrap gap-2">
+              <button className={cur.relay_reviewed_at ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => upd([cur.id], { relay_reviewed_at: cur.relay_reviewed_at ? null : new Date().toISOString() }, cur.relay_reviewed_at ? "검토 완료를 해제했어요." : "검토 완료로 표시했어요.")}>{cur.relay_reviewed_at ? "✓ 검토 완료" : "검토 완료 표시"}</button>
+              <button className={cur.revealed ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => confirm(cur.revealed ? "이 학생의 결과를 다시 비공개로 바꿀까요?" : "이 학생에게 결과를 지금 공개할까요?") && upd([cur.id], { revealed: !cur.revealed }, cur.revealed ? "비공개로 바꿨어요." : "공개했어요.")}>{cur.revealed ? "공개 중 · 닫기" : "이 학생만 공개"}</button>
+              <button className="btn-outline btn-sm" onClick={() => setPrintId(cur.id)}>🖨 인쇄</button>
+            </div>}>
+              <p className="text-xs text-muted">학생에게 보일 모습 (결과에서 제외한 편지는 빠져요)</p>
+              <StrengthCloud letters={recv(cur.id).filter((m) => m.status === "approved")} />
+            </Section>
+            {recv(cur.id).length === 0 ? <Section><Empty>받은 편지가 없어요.</Empty></Section> :
+              recv(cur.id).map((m) => <ReviewItem key={m.id} m={m} from={byId.get(m.author_student_id)?.name ?? ""} to={cur.name} refresh={refresh} />)}
+          </div>
+        ) : <Section><Empty>왼쪽에서 학생을 골라 받은 편지를 검토하세요.</Empty></Section>}
+      </div>
     </div>
   );
 }
 
 function PrintView({ d, only, onClose }: { d: D; only: string | null; onClose: () => void }) {
-  const people = useMemo(() => d.students.filter((s) => (only ? s.id === only : s.role !== "test")), [d.students, only]);
+  const people = useMemo(() => d.students.filter((s) => (only ? s.id === only : true)), [d.students, only]);
   return (
     <div>
       <div className="no-print mb-4 flex gap-2"><button className="btn" onClick={() => print()}>🖨 인쇄하기</button><button className="btn-outline" onClick={onClose}>돌아가기</button></div>

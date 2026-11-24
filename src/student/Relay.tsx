@@ -2,20 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import type { Me } from "../App";
 import { callFn, supabase } from "../lib/supabase";
 import { weekStart } from "../lib/util";
+import { countStrengths, useStrengthMap } from "../lib/strengths";
 import { Empty, Section, Tabs, useToast } from "../ui/kit";
 
 type Activity = { day: string; student_id: string; students: { name: string } | null };
 
 export function StrengthCloud({ letters }: { letters: { strengths: string[] }[] }) {
-  const counts = new Map<string, number>();
-  letters.forEach((l) => l.strengths.forEach((w) => { const c = w.trim(); if (c) counts.set(c, (counts.get(c) ?? 0) + 1); }));
-  const list = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"));
+  const map = useStrengthMap();
+  const list = countStrengths(letters, map);
   const max = list[0]?.[1] ?? 1;
   if (!list.length) return null;
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 py-4">
       {list.map(([w, n], i) => (
-        <span key={w} className="font-bold leading-tight"
+        <span key={w} className="font-bold leading-tight" title={`${n}명`}
           style={{ fontSize: `${0.85 + (n / max) * 1.1}rem`, color: ["#2f6b4f", "#b45309", "#be185d", "#1d4ed8", "#6d28d9"][i % 5] }}>
           {w}
         </span>

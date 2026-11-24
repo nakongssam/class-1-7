@@ -33,4 +33,5 @@ export type Student = {
   user_id: string | null;
   revealed: boolean;
   active: boolean;
+  relay_reviewed_at?: string | null;
 };
