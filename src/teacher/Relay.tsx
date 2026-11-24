@@ -99,7 +99,7 @@ function Dashboard({ d, today }: { d: D; today: string }) {
         <Progress value={(heroCount / Math.max(writers.length, 1)) * 100} />
         <p className="mt-2 text-sm text-muted">남은 주인공 {writers.length - heroCount}명 · 전체 편지 {d.msgs.length}통</p>
       </Section>
-      <Section title="학생별 현황" className="lg:col-span-3">
+      <Section title="학생별 현황" className="lg:col-span-3" right={<span className="text-xs text-muted">강점 TOP 3는 비슷한 표현(착하다·착함·착하당)을 AI가 묶어서 센 거예요</span>}>
         <div className="overflow-x-auto">
           <table className="table min-w-[600px]">
             <thead><tr><th>학번</th><th>이름</th><th>받은 편지</th><th>쓴 편지</th><th>강점 TOP 3</th></tr></thead>
@@ -283,7 +283,6 @@ function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
   const toast = useToast();
   const [printId, setPrintId] = useState<string | "all" | null>(null);
   const [open, setOpen] = useState<string | null>(null);
-  const [norm, setNorm] = useState("");
   const people = d.students; // 교사·테스트 계정 포함
   const byId = new Map(d.students.map((s) => [s.id, s]));
   const recv = (id: string) => d.msgs.filter((m) => m.target_student_id === id);
@@ -303,20 +302,6 @@ function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
     } else if (!confirm("모두 비공개로 바꿀까요?")) return;
     upd(people.map((s) => s.id), { revealed: v }, v ? "전체 공개했어요." : "모두 비공개로 바꿨어요.");
   };
-  const normalize = async (all: boolean) => {
-    if (all && !confirm("강점 정리를 처음부터 다시 할까요? 1~2분 걸려요.")) return;
-    let first = true;
-    for (let guard = 0; guard < 20; guard++) {
-      setNorm(guard ? `정리 중… (${guard * 100}개 완료)` : "정리 중…");
-      const r = await callFn("ai", { action: "normalize_strengths", all: all && first });
-      first = false;
-      if (!r.ok) { setNorm(""); return toast(r.error ?? "정리하지 못했어요.", "err"); }
-      if (!Number(r.remaining)) break;
-    }
-    await loadStrengthMap(true);
-    setNorm("");
-    toast("강점을 정리했어요.");
-  };
 
   if (printId) return <PrintView d={d} only={printId === "all" ? null : printId} onClose={() => setPrintId(null)} />;
   const cur = open ? byId.get(open) : null;
@@ -329,12 +314,6 @@ function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
       </div>}>
         <p className="text-sm">검토 완료 <b>{reviewed}</b> / {withLetters.length}명 · 공개 중 <b>{revealedN}</b>명</p>
         <p className="mt-1 text-xs text-muted">선생님이 공개하기 전까지 학생들은 받은 편지를 볼 수 없어요. 학생 이름을 눌러 편지를 하나씩 검토·수정·삭제한 뒤 '검토 완료'를 표시하세요.</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <button className="btn-outline btn-sm" disabled={!!norm} onClick={() => normalize(false)}>✨ 새 강점 AI 정리</button>
-          <button className="text-xs text-muted underline" disabled={!!norm} onClick={() => normalize(true)}>처음부터 다시 정리</button>
-          {norm && <span className="text-xs text-muted">{norm}</span>}
-          <span className="text-xs text-muted">비슷한 강점(착하다·착함·착하당)을 하나로 묶어 워드클라우드와 TOP 3에 반영해요.</span>
-        </div>
       </Section>
       <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <Section title="학생">
