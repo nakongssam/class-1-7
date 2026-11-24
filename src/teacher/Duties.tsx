@@ -15,7 +15,7 @@ export default function DutiesTeacher() {
   const [view, setView] = useState<"분담표 보기" | "편집">("분담표 보기");
   const load = useCallback(async () => {
     const [{ data: st }, { data: du }] = await Promise.all([
-      supabase.from("students").select("id, student_no, name").eq("role", "student").eq("active", true).order("student_no"),
+      supabase.from("students").select("id, student_no, name, role").in("role", ["student", "test"]).eq("active", true).order("student_no"),
       supabase.from("class_duties").select("*"),
     ]);
     const { data: ck } = await supabase.from("duty_checks").select("student_id, item_key, rating");
