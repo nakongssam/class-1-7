@@ -69,6 +69,18 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   const [invites, setInvites] = useState(0);
   const [monthCheck, setMonthCheck] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
+  const [duty, setDuty] = useState<{ duty: string; service1: string; service2: string; hours: number } | null>(null);
+  const [allDuties, setAllDuties] = useState<{ student_no: string; name: string; duty: string }[] | null>(null);
+  const [showDuties, setShowDuties] = useState(false);
+  const [nextClean, setNextClean] = useState<CleanSlot | null>(null);
+  useEffect(() => {
+    supabase.from("class_duties").select("duty, service1, service2, hours").eq("student_id", me.id).maybeSingle().then(({ data }) => setDuty(data));
+    supabase.from("clean_slots").select("*").eq("student_id", me.id).gte("day", me.today).order("day").limit(1).then(({ data }) => setNextClean(((data ?? []) as CleanSlot[])[0] ?? null));
+  }, [me.id, me.today]);
+  const openDuties = async () => {
+    setShowDuties((v) => !v);
+    if (!allDuties) { const { data } = await supabase.rpc("list_class_duties"); setAllDuties(data ?? []); }
+  };
   const [clean, setClean] = useState<{ today: (CleanSlot & { name: string })[]; mine: CleanSlot | null } | null>(null);
   const loadClean = async () => {
     const [{ data: slots }, { data: roster }, { data: pending }] = await Promise.all([
@@ -126,6 +138,31 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
           </div>
         ) : <p className="mt-1 font-semibold">평일에 공개돼요</p>}
       </button>
+
+      <section className="card">
+        <p className="text-sm text-muted">🙋 내 역할</p>
+        <p className="mt-1 text-xl font-extrabold text-brand">{duty?.duty || "1인 1역 없음"}</p>
+        {nextClean && (
+          <p className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${nextClean.day === me.today ? "bg-amber-100 text-amber-800" : "bg-stone-100 text-stone-700"}`}>
+            🧹 {nextClean.day === me.today ? "오늘 청소 당번" : `${formatDay(nextClean.day)} 청소 당번`} · {roleLabel(nextClean.role)}{nextClean.done_at ? " ✓" : ""}
+          </p>
+        )}
+        {duty && (duty.service1 || duty.service2) && (
+          <dl className="mt-3 space-y-1 border-t border-line pt-3 text-sm">
+            {duty.service1 && <div className="flex gap-2"><dt className="w-16 shrink-0 text-muted">1학기 봉사</dt><dd>{duty.service1}</dd></div>}
+            {duty.service2 && <div className="flex gap-2"><dt className="w-16 shrink-0 text-muted">2학기 봉사</dt><dd>{duty.service2}</dd></div>}
+            <div className="flex gap-2"><dt className="w-16 shrink-0 text-muted">합계</dt><dd><b>{duty.hours}시간</b></dd></div>
+          </dl>
+        )}
+        <button className="btn-outline btn-sm mt-3" onClick={openDuties}>{showDuties ? "닫기" : "우리 반 1인 1역 전체 보기"}</button>
+        {showDuties && (
+          <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+            {(allDuties ?? []).map((x) => (
+              <li key={x.student_no} className={`flex gap-2 ${x.name === me.name ? "font-bold text-brand" : ""}`}><span className="w-14 shrink-0">{x.name}</span><span className={x.duty ? "" : "text-muted"}>{x.duty || "-"}</span></li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {clean?.mine && (
         <section className="card border-amber-300 bg-amber-50">

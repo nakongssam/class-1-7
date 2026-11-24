@@ -8,8 +8,9 @@ import AttendanceTeacher from "./Attendance";
 import RelayTeacher from "./Relay";
 import StudyTeacher from "./Study";
 import CleanTeacher from "./Clean";
+import DutiesTeacher from "./Duties";
 
-const TABS = ["출결", "칭찬 릴레이", "스터디", "청소", "학생·계정", "내보내기"] as const;
+const TABS = ["출결", "칭찬 릴레이", "스터디", "청소", "1인1역", "학생·계정", "내보내기"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function TeacherApp({ me }: { me: Me }) {
@@ -33,6 +34,7 @@ export default function TeacherApp({ me }: { me: Me }) {
         {tab === "칭찬 릴레이" && <RelayTeacher me={me} />}
         {tab === "스터디" && <StudyTeacher />}
         {tab === "청소" && <CleanTeacher />}
+        {tab === "1인1역" && <DutiesTeacher />}
         {tab === "학생·계정" && <Accounts />}
         {tab === "내보내기" && <Export />}
       </main>

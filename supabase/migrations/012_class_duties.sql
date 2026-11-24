@@ -1,0 +1,4 @@
+-- 012: 1인1역·봉사 (DB에 적용 완료)
+-- class_duties(student_id pk, duty, service1, service2, hours) : 본인·교사만 읽기, 교사만 쓰기
+-- list_class_duties() : 학급 전체 1인1역(이름·역할만) 공개
+-- 역할분담표 이미지 기준으로 초기 데이터 입력, 시험기간 12/15~18 청소 쉬는 날 지정
