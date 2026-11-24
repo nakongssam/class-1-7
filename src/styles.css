@@ -14,7 +14,7 @@
 }
 
 html, body { background: var(--color-bg); color: var(--color-ink); -webkit-tap-highlight-color: transparent; }
-body { font-family: var(--font-sans); word-break: keep-all; }
+body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywhere; }
 input, textarea, select, button { font: inherit; }
 
 @layer components {

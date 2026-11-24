@@ -153,7 +153,7 @@ function Drafts({ d, notes, selected, setSelected, logsOf, reload }: {
   };
   if (!id) return <Section><Empty>학생이 없어요.</Empty></Section>;
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
       <Section title="확정된 활동 기록" right={
         <select className="input w-48 py-1.5 text-sm" value={id} onChange={(e) => setSelected(e.target.value)} aria-label="학생">{d.classmates.map((s) => <option key={s.id} value={s.id}>{s.student_no} {s.name}</option>)}</select>
       }>

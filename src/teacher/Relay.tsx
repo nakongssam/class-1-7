@@ -335,7 +335,7 @@ function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
           <span className="text-xs text-muted">비슷한 강점(착하다·착함·착하당)을 하나로 묶어 워드클라우드와 TOP 3에 반영해요.</span>
         </div>
       </Section>
-      <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <Section title="학생">
           <ul className="max-h-[70vh] space-y-1 overflow-auto">
             {people.map((s) => {

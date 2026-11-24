@@ -82,7 +82,7 @@ function Accounts() {
   const pinCount = realStudents.filter((s) => status.get(s.student_no)?.pin_set).length;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Section title={`학생 계정 (${realStudents.length}명 · 비밀번호 설정 ${pinCount}명)`}>
         <div className="overflow-x-auto">
           <table className="table min-w-[560px]">
