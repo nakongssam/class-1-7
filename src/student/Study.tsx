@@ -18,10 +18,12 @@ export type StudyLog = {
 export const hm = (m: number) => `${Math.floor(m / 60)}시간${m % 60 ? ` ${m % 60}분` : ""}`;
 
 export async function loadStudy() {
-  const [{ data: groups, error }, { data: classmates }, { data: logs }] = await Promise.all([
+  const [{ data: groups, error }, { data: classmates }, { data: logs }, { data: settings }, { data: rewards }] = await Promise.all([
     supabase.rpc("list_study_groups"),
     supabase.rpc("list_classmates"),
     supabase.from("study_logs").select("*").order("activity_date", { ascending: false }).order("created_at", { ascending: false }),
+    supabase.from("class_settings").select("study_reward_target").maybeSingle(),
+    supabase.from("study_rewards").select("student_id, round, given_at"),
   ]);
   if (error) throw error;
   const paths = [...new Set((logs ?? []).flatMap((l) => l.photo_paths as string[]))];
@@ -33,8 +35,39 @@ export async function loadStudy() {
   return {
     groups: (groups ?? []) as StudyGroup[],
     classmates: (classmates ?? []) as { id: string; name: string; student_no: string }[],
+    rewardTarget: (settings?.study_reward_target as number | undefined) ?? 10,
+    rewards: (rewards ?? []) as { student_id: string; round: number; given_at: string }[],
     logs: ((logs ?? []) as StudyLog[]).map((l) => ({ ...l, photos: l.photo_paths.map((p) => urls.get(p)).filter(Boolean) as string[] })),
   };
+}
+
+// 개인 보상: 본인이 쓴 일지 중 확정된 것만 센다
+export const myConfirmedCount = (logs: StudyLog[], id: string) => logs.filter((l) => l.author_id === id && l.status === "confirmed").length;
+
+function StampBoard({ count, target, given }: { count: number; target: number; given: number[] }) {
+  const rounds = Math.floor(count / target);
+  const cur = count - rounds * target;
+  return (
+    <div>
+      <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+        {Array.from({ length: target }, (_, i) => (
+          <div key={i} className={`flex aspect-square items-center justify-center rounded-full border-2 text-lg ${i < cur ? "border-brand bg-brand/10" : "border-dashed border-line text-muted"}`}>
+            {i < cur ? "📚" : <span className="text-xs">{i + 1}</span>}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-sm">
+        확정된 내 일지 <b className="text-brand">{count}건</b>
+        {rounds > 0 ? <> · 🎉 <b>{rounds}번</b> 달성!</> : <> · 달성까지 <b>{target - cur}건</b> 남았어요</>}
+      </p>
+      {rounds > 0 && (
+        <p className="mt-1 text-xs text-muted">
+          {Array.from({ length: rounds }, (_, i) => i + 1).map((r) => `${r}회차 ${given.includes(r) ? "보상 받음 ✓" : "보상 준비 중"}`).join(" · ")}
+        </p>
+      )}
+      <p className="mt-1 text-xs text-muted">내가 쓴 일지를 그룹 친구가 '함께 했어요'로 확인하면 도장이 찍혀요. {target}개를 모으면 선생님이 보상을 줘요!</p>
+    </div>
+  );
 }
 
 export function GroupCard({ g, children }: { g: StudyGroup; children?: React.ReactNode }) {
@@ -138,6 +171,7 @@ export default function StudyStudent({ me }: { me: Me }) {
       <Tabs tabs={SUB} value={sub} onChange={setSub} />
       {sub === "내 활동일지" && (
         <>
+          {myGroups.length > 0 && <Section title="🏅 내 스터디 도장판"><StampBoard count={myConfirmedCount(d.logs, me.id)} target={d.rewardTarget} given={d.rewards.filter((r) => r.student_id === me.id).map((r) => r.round)} /></Section>}
           <Section title="활동 인증하기"><LogForm groups={myGroups} me={me} onSaved={load} /></Section>
           <Section title={`내 그룹의 활동 (${myLogs.length})`}>
             {!myLogs.length ? <Empty>아직 활동일지가 없어요.</Empty> : (
