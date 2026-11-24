@@ -37,7 +37,7 @@ export default function CleanStudent({ me }: { me: Me }) {
   useEffect(() => { load(); }, [load]);
   if (!d) return <Loading />;
 
-  const mine = d.slots.filter((s) => s.student_id === me.id);
+  const mine = d.slots.filter((s) => s.student_id === me.id && !d.off.has(s.day));
   const toCheck = mine.filter((s) => s.day <= me.today && !s.done_at);
   const upcoming = mine.filter((s) => s.day > me.today);
   const used = countIn(d, me.id);

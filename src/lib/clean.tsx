@@ -37,7 +37,7 @@ export async function loadClean(): Promise<CleanData> {
 export const inPeriod = (d: CleanData, day: string) => !!d.from && !!d.to && day >= d.from && day <= d.to;
 export const isWeekday = (day: string) => { const w = new Date(`${day}T12:00:00`).getDay(); return w >= 1 && w <= 5; };
 /** 기간 안에서 학생별 신청 횟수 */
-export const countIn = (d: CleanData, id: string) => d.slots.filter((s) => s.student_id === id && inPeriod(d, s.day)).length;
+export const countIn = (d: CleanData, id: string) => d.slots.filter((s) => s.student_id === id && inPeriod(d, s.day) && !d.off.has(s.day)).length;
 /** 아직 한 번도 신청 안 된 학생 (테스트 계정 제외) */
 export const leftovers = (d: CleanData) => d.roster.filter((r) => !r.is_test && countIn(d, r.id) === 0);
 export const nameOf = (d: CleanData, id: string) => d.roster.find((r) => r.id === id)?.name ?? "";
@@ -127,7 +127,7 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
 /** 학생별 청소 횟수: 완료(체크함) / 지난 날인데 체크 안 함 / 예정 */
 export function cleanCounts(d: CleanData, today: string) {
   return d.roster.filter((r) => !r.is_test).map((r) => {
-    const mine = d.slots.filter((s) => s.student_id === r.id);
+    const mine = d.slots.filter((s) => s.student_id === r.id && !d.off.has(s.day)); // 쉬는 날로 바뀐 신청은 세지 않음
     return {
       ...r,
       done: mine.filter((s) => s.done_at).length,

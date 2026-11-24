@@ -40,7 +40,17 @@ export default function CleanTeacher() {
     }
     load();
   };
+  const removeSlotsOn = async (day: string) => {
+    const { error } = await supabase.from("clean_slots").delete().eq("day", day);
+    if (error) { toast(errMsg(error), "err"); return false; }
+    return true;
+  };
   const toggleOff = async (day: string) => {
+    const onDay = d.slots.filter((s) => s.day === day);
+    if (!d.off.has(day) && onDay.length) {
+      if (!window.confirm(`이 날 신청한 ${onDay.map((s) => nameOf(d, s.student_id)).join(", ")}의 청소가 취소돼요. 학생들은 다른 날로 다시 신청할 수 있어요.\n쉬는 날로 지정할까요?`)) return;
+      if (!(await removeSlotsOn(day))) return;
+    }
     const { error } = d.off.has(day)
       ? await supabase.from("clean_days_off").delete().eq("day", day)
       : await supabase.from("clean_days_off").insert({ day, reason: offReason.trim() });
@@ -90,7 +100,17 @@ export default function CleanTeacher() {
               {!d.off.has(sel) && <input className="input w-36 py-1.5 text-sm" placeholder="사유 (예: 시험)" value={offReason} onChange={(e) => setOffReason(e.target.value)} />}
               <button className="btn-outline btn-sm" onClick={() => toggleOff(sel)}>{d.off.has(sel) ? "청소하는 날로 되돌리기" : "쉬는 날로 지정"}</button>
             </div>}>
-            {d.off.has(sel) ? <p className="text-sm text-muted">쉬는 날: {d.off.get(sel) || "사유 없음"}</p> : (
+            {d.off.has(sel) ? (
+              <div className="text-sm">
+                <p className="text-muted">쉬는 날: {d.off.get(sel) || "사유 없음"}</p>
+                {selSlots.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 p-2">
+                    <span>쉬는 날로 바꾸기 전에 신청한 학생: <b>{selSlots.map((s) => nameOf(d, s.student_id)).join(", ")}</b> (횟수에는 안 들어가요)</span>
+                    <button className="btn-danger" onClick={async () => { if (window.confirm("이 날 남아 있는 신청을 지울까요?") && (await removeSlotsOn(sel))) { toast("지웠어요."); load(); } }}>신청 지우기</button>
+                  </div>
+                )}
+              </div>
+            ) : (
               <>
                 {!inPeriod(d, sel) && <p className="mb-2 text-xs text-amber-700">신청 기간 밖이에요. 선생님은 그래도 배정할 수 있어요.</p>}
                 <ul className="space-y-2">
