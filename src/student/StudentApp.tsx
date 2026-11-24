@@ -6,12 +6,15 @@ import { formatDay, weekStart } from "../lib/util";
 import AttendanceStudent from "./Attendance";
 import RelayStudent from "./Relay";
 import StudyStudent from "./Study";
+import CleanStudent, { RatingButtons } from "./Clean";
+import { roleLabel, type CleanSlot } from "../lib/clean";
 
 const TABS = [
   { id: "home", label: "홈", icon: "🏠" },
   { id: "attendance", label: "출결", icon: "🌱" },
   { id: "relay", label: "칭찬", icon: "💌" },
   { id: "study", label: "스터디", icon: "📚" },
+  { id: "clean", label: "청소", icon: "🧹" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -45,9 +48,10 @@ export default function StudentApp({ me }: { me: Me }) {
         {tab === "attendance" && <AttendanceStudent me={me} />}
         {tab === "relay" && <RelayStudent me={me} />}
         {tab === "study" && <StudyStudent me={me} />}
+        {tab === "clean" && <CleanStudent me={me} />}
       </main>
       <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="메뉴">
-        <div className="mx-auto grid max-w-2xl grid-cols-4">
+        <div className="mx-auto grid max-w-2xl grid-cols-5">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}
               className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold ${tab === t.id ? "text-brand" : "text-muted"}`}>
@@ -65,6 +69,17 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   const [invites, setInvites] = useState(0);
   const [monthCheck, setMonthCheck] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
+  const [clean, setClean] = useState<{ today: (CleanSlot & { name: string })[]; mine: CleanSlot | null } | null>(null);
+  const loadClean = async () => {
+    const [{ data: slots }, { data: roster }, { data: pending }] = await Promise.all([
+      supabase.from("clean_slots").select("*").eq("day", me.today),
+      supabase.rpc("clean_roster"),
+      supabase.from("clean_slots").select("*").eq("student_id", me.id).lte("day", me.today).is("done_at", null).order("day").limit(1),
+    ]);
+    const names = new Map(((roster ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
+    setClean({ today: ((slots ?? []) as CleanSlot[]).map((s) => ({ ...s, name: names.get(s.student_id) ?? "" })), mine: ((pending ?? []) as CleanSlot[])[0] ?? null });
+  };
+  useEffect(() => { loadClean(); }, [me.id, me.today]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     (async () => {
@@ -110,6 +125,20 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
             <span className={hero.left ? "chip-warn mt-2" : "chip mt-2"}>{hero.left ? `아직 ${hero.left}명에게 안 썼어요 →` : "모두 보냈어요 💛"}</span>
           </div>
         ) : <p className="mt-1 font-semibold">평일에 공개돼요</p>}
+      </button>
+
+      {clean?.mine && (
+        <section className="card border-amber-300 bg-amber-50">
+          <p className="font-bold">🧹 {clean.mine.day === me.today ? "오늘 청소 당번이에요" : "체크 안 한 청소가 있어요"} · {roleLabel(clean.mine.role)}</p>
+          <p className="mb-2 mt-0.5 text-xs text-muted">청소를 다 했으면 열심히 한 정도를 눌러 체크해요.</p>
+          <RatingButtons slot={clean.mine} onDone={loadClean} />
+        </section>
+      )}
+      <button onClick={() => go("clean")} className="card w-full text-left">
+        <p className="text-sm text-muted">🧹 오늘 청소</p>
+        {clean?.today.length ? (
+          <p className="mt-1 text-sm leading-relaxed">{["front_back", "col1", "col2", "col3", "col4"].map((r) => clean.today.find((s) => s.role === r)).filter(Boolean).map((s) => <span key={s!.role} className="mr-2 inline-block"><span className="text-muted">{roleLabel(s!.role)}</span> <b>{s!.name}</b>{s!.done_at ? " ✓" : ""}</span>)}</p>
+        ) : <p className="mt-1 font-semibold">오늘은 당번이 없어요 · 달력 보기 →</p>}
       </button>
 
       <div className="grid grid-cols-2 gap-3">

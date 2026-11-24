@@ -1,0 +1,5 @@
+-- 011: 청소 당번 (DB에 적용 완료)
+-- class_settings.clean_from / clean_to / clean_per_student
+-- clean_days_off(day, reason), clean_slots(day, role[front_back|col1..col4], student_id, self_rating 상/중/하, done_at, assigned_by_teacher)
+-- RPC: clean_signup(_day,_role), clean_cancel(_day), clean_check(_day,_rating), clean_roster()
+-- 학생은 RPC로만 쓰기, 교사는 테이블 직접 관리
