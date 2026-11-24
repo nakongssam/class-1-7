@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Me } from "../App";
 import { callFn, supabase, type Student } from "../lib/supabase";
 import { errMsg, formatDay, weekStart } from "../lib/util";
@@ -467,27 +467,60 @@ function StudentReview({ cur, msgs, byId, refresh, onReviewed, onReveal, onPrint
 }
 
 function PrintView({ d, only, onClose }: { d: D; only: string | null; onClose: () => void }) {
-  const people = useMemo(() => d.students.filter((s) => (only ? s.id === only : true)), [d.students, only]);
+  const people = useMemo(() => d.students.filter((s) => (only ? s.id === only : true))
+    .map((s) => ({ s, letters: d.msgs.filter((m) => m.target_student_id === s.id && m.status === "approved") }))
+    .filter((x) => x.letters.length > 0), [d.students, d.msgs, only]);
   return (
     <div>
-      <div className="no-print mb-4 flex gap-2"><button className="btn" onClick={() => print()}>🖨 인쇄하기</button><button className="btn-outline" onClick={onClose}>돌아가기</button></div>
-      {people.map((s) => {
-        const letters = d.msgs.filter((m) => m.target_student_id === s.id && m.status === "approved");
-        if (!letters.length) return null;
-        return (
-          <article key={s.id} className="print-page card mb-6">
-            <h2 className="text-center text-2xl font-extrabold">💌 {s.name}에게</h2>
-            <StrengthCloud letters={letters} />
-            <div className="columns-1 gap-3 sm:columns-2">
-              {letters.map((m) => (
-                <div key={m.id} className="mb-3 break-inside-avoid rounded-lg border border-line p-3 text-sm">
-                  <p className="whitespace-pre-wrap">{m.body}</p>
-                </div>
-              ))}
-            </div>
-          </article>
-        );
-      })}
+      <div className="no-print mb-4 flex flex-wrap items-center gap-2">
+        <button className="btn" onClick={() => print()}>🖨 인쇄하기</button>
+        <button className="btn-outline" onClick={onClose}>돌아가기</button>
+        <span className="text-sm text-muted">A4 한 장에 한 학생씩, 편지가 많으면 글자 크기를 자동으로 줄여 한 장에 다 들어가게 해요. ({people.length}장)</span>
+      </div>
+      <div className="print-area space-y-6">
+        {people.map(({ s, letters }) => <PrintSheet key={s.id} name={s.role === "teacher" ? "선생님" : s.name} letters={letters} />)}
+      </div>
+    </div>
+  );
+}
+
+// A4 한 장(가로 190mm × 세로 277mm 영역)에 내용이 넘치지 않을 때까지 글자 크기를 줄인다
+function PrintSheet({ name, letters }: { name: string; letters: Msg[] }) {
+  const sheet = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const cols = letters.length > 24 ? 3 : 2;
+  useLayoutEffect(() => {
+    const el = sheet.current, inner = body.current;
+    if (!el || !inner) return;
+    const cs = getComputedStyle(el);
+    const room = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    let sc = 1;
+    inner.style.fontSize = `${11 * sc}pt`;
+    while (inner.scrollHeight > room && sc > 0.4) {
+      sc -= 0.03;
+      inner.style.fontSize = `${11 * sc}pt`;
+    }
+    setScale(sc);
+  }, [letters, cols]);
+  const counts = new Map<string, number>();
+  letters.forEach((l) => new Set(l.strengths.map((r) => r.trim().replace(/\s+/g, " ")).filter(Boolean)).forEach((w) => counts.set(w, (counts.get(w) ?? 0) + 1)));
+  const cloud = [...counts].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "ko"));
+  const max = cloud[0]?.[1] ?? 1;
+  const colors = ["#2f6b4f", "#b45309", "#be185d", "#1d4ed8", "#6d28d9"];
+  return (
+    <div ref={sheet} className="print-sheet mx-auto overflow-hidden bg-white shadow-sm ring-1 ring-line">
+      <div ref={body} style={{ fontSize: `${11 * scale}pt` }} className="leading-snug">
+        <h2 className="text-center font-extrabold" style={{ fontSize: "2em" }}>💌 {name}에게</h2>
+        <div className="mx-auto mt-[0.6em] mb-[0.8em] flex flex-wrap items-center justify-center gap-x-[0.6em] gap-y-[0.2em] border-b border-line pb-[0.6em]">
+          {cloud.map(([w, n], i) => <span key={w} className="font-bold" style={{ fontSize: `${0.9 + (n / max) * 1.1}em`, color: colors[i % 5] }}>{w}</span>)}
+        </div>
+        <div style={{ columnCount: cols, columnGap: "0.8em" }}>
+          {letters.map((m) => (
+            <p key={m.id} className="mb-[0.5em] break-inside-avoid whitespace-pre-wrap rounded-md border border-line px-[0.6em] py-[0.4em]">{m.body}</p>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

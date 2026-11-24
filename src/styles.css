@@ -34,8 +34,17 @@ input, textarea, select, button { font: inherit; }
   .table td { @apply border-b border-line/70 px-3 py-2 align-top; }
 }
 
+/* 인쇄용 A4 한 장: 여백 10mm → 내용 영역 190mm × 277mm */
+.print-sheet { width: 190mm; height: 277mm; padding: 6mm; box-sizing: border-box; }
+
+@page { size: A4; margin: 10mm; }
 @media print {
   .no-print { display: none !important; }
-  body { background: white; }
-  .print-page { break-after: page; }
+  html, body { background: white !important; }
+  main { padding: 0 !important; max-width: none !important; }
+  .print-area { margin: 0 !important; }
+  .print-area > * + * { margin-top: 0 !important; }
+  .print-sheet { box-shadow: none !important; outline: none !important; --tw-ring-shadow: 0 0 #0000 !important; break-after: page; page-break-after: always; padding: 0; }
+  .print-sheet:last-child { break-after: auto; page-break-after: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
