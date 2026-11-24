@@ -274,6 +274,7 @@ function Week({ d, today, refresh }: { d: D; today: string; refresh: () => void 
           </ul>
         )}
       </Section>
+      <Announcement names={thisWeek.map((a) => byId.get(a.student_id)?.name ?? "")} ws={ws} />
     </div>
   );
 }
@@ -367,6 +368,35 @@ function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
         ) : <Section><Empty>왼쪽에서 학생을 골라 받은 편지를 검토하세요.</Empty></Section>}
       </div>
     </div>
+  );
+}
+
+function Announcement({ names, ws }: { names: string[]; ws: string }) {
+  const toast = useToast();
+  const end = (() => { const x = new Date(`${ws}T12:00:00`); x.setDate(x.getDate() + 4); return `${x.getMonth() + 1}/${x.getDate()}`; })();
+  const start = `${Number(ws.slice(5, 7))}/${Number(ws.slice(8))}`;
+  const make = () => [
+    `📢 [1-7 칭찬 릴레이] 이번 주 주인공 (${start}~${end})`,
+    "",
+    `이번 주 주인공은 ${names.length ? names.join(", ") : "○○○"} 입니다! 🎉`,
+    "",
+    "✏️ 한 명도 빠짐없이 모두 참여해서, 주인공 한 명 한 명에게 강점과 응원의 말을 써 주세요.",
+    "📮 지난 주인공 중에 아직 편지를 안 쓴 친구가 있다면 이번 주에 같이 써 주세요. (칭찬 탭 → '지난 주인공')",
+    "🔒 받은 편지는 학기말에 한 번에 공개할 예정이에요. 진심을 담아 따뜻하게 써 주세요 💌",
+    "",
+    `👉 ${location.origin}${location.pathname}`,
+  ].join("\n");
+  const [text, setText] = useState(make);
+  useEffect(() => setText(make()), [names.join(","), ws]); // eslint-disable-line react-hooks/exhaustive-deps
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); toast("복사했어요. 단톡방이나 클래스룸에 붙여 넣으세요."); }
+    catch { toast("복사하지 못했어요. 글을 직접 선택해서 복사해 주세요.", "err"); }
+  };
+  return (
+    <Section title="📢 월요일 안내 문구" right={<div className="flex gap-2"><button className="btn-outline btn-sm" onClick={() => setText(make())}>처음 문구로</button><button className="btn btn-sm" onClick={copy}>📋 복사</button></div>}>
+      <textarea className="input min-h-56 text-sm leading-relaxed" value={text} onChange={(e) => setText(e.target.value)} aria-label="안내 문구" />
+      <p className="mt-2 text-xs text-muted">이번 주 주인공 이름이 자동으로 들어가요. 고쳐서 복사해도 돼요.</p>
+    </Section>
   );
 }
 
