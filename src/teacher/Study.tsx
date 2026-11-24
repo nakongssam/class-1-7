@@ -56,7 +56,7 @@ export default function StudyTeacher() {
       {sub === "학생별 현황" && (
         <Section title="학생별 스터디 현황">
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-50 p-3 text-sm">
-            <span>🏅 보상 기준: 본인이 쓴 <b>확정 일지</b></span>
+            <span>🏅 보상 기준: 본인이 쓴 <b>활동일지</b></span>
             <input type="number" min={1} max={100} defaultValue={d.rewardTarget} key={d.rewardTarget} className="input w-20 py-1 text-sm" aria-label="보상 기준 건수"
               onBlur={(e) => Number(e.target.value) !== d.rewardTarget && setTarget(Number(e.target.value))} />
             <span>건마다 1회</span>
@@ -64,7 +64,7 @@ export default function StudyTeacher() {
           </div>
           <div className="overflow-x-auto">
             <table className="table min-w-[760px]">
-              <thead><tr><th>학번</th><th>이름</th><th>그룹(역할)</th><th>확정 시간</th><th>일지</th><th>최근 활동</th><th>보상</th><th></th></tr></thead>
+              <thead><tr><th>학번</th><th>이름</th><th>그룹(역할)</th><th>공부 시간</th><th>일지</th><th>최근 활동</th><th>보상</th><th></th></tr></thead>
               <tbody>
                 {d.classmates.map((s) => {
                   const gs = groupsOf(s.id);
@@ -194,7 +194,7 @@ function Drafts({ d, notes, selected, setSelected, logsOf, reload }: {
   if (!id) return <Section><Empty>학생이 없어요.</Empty></Section>;
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="확정된 활동 기록" right={
+      <Section title="활동 기록" right={
         <select className="input w-48 py-1.5 text-sm" value={id} onChange={(e) => setSelected(e.target.value)} aria-label="학생">{d.classmates.map((s) => <option key={s.id} value={s.id}>{s.student_no} {s.name}</option>)}</select>
       }>
         {!logs.length ? <Empty>이 학생의 그룹 활동 일지가 없어요.</Empty> : (
@@ -202,7 +202,7 @@ function Drafts({ d, notes, selected, setSelected, logsOf, reload }: {
         )}
       </Section>
       <Section title="✍️ 생기부 초안" className="h-fit lg:sticky lg:top-32">
-        <p className="-mt-1 mb-3 text-xs text-muted">확정된 일지와 교사 메모를 바탕으로 500자 이내로 써요. 대학명·기관명·가족 정보는 넣지 않아요.</p>
+        <p className="-mt-1 mb-3 text-xs text-muted">활동일지와 교사 메모를 바탕으로 500자 이내로 써요. 대학명·기관명·가족 정보는 넣지 않아요.</p>
         <button className="btn w-full" disabled={busy} onClick={gen}>{busy ? "만드는 중…" : "AI로 초안 만들기"}</button>
         <textarea className="input mt-3 min-h-72 text-sm leading-relaxed" value={text} onChange={(e) => setText(e.target.value)} placeholder="초안이 여기에 나와요. 직접 써도 돼요." />
         <div className="mt-2 flex items-center justify-between text-xs">

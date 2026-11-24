@@ -41,8 +41,8 @@ export async function loadStudy() {
   };
 }
 
-// 개인 보상: 본인이 쓴 일지 중 확정된 것만 센다
-export const myConfirmedCount = (logs: StudyLog[], id: string) => logs.filter((l) => l.author_id === id && l.status === "confirmed").length;
+// 개인 보상: 본인이 쓴 일지 수
+export const myConfirmedCount = (logs: StudyLog[], id: string) => logs.filter((l) => l.author_id === id).length;
 
 function StampBoard({ count, target, given }: { count: number; target: number; given: number[] }) {
   const rounds = Math.floor(count / target);
@@ -57,7 +57,7 @@ function StampBoard({ count, target, given }: { count: number; target: number; g
         ))}
       </div>
       <p className="mt-3 text-sm">
-        확정된 내 일지 <b className="text-brand">{count}건</b>
+        내가 쓴 일지 <b className="text-brand">{count}건</b>
         {rounds > 0 ? <> · 🎉 <b>{rounds}번</b> 달성!</> : <> · 달성까지 <b>{target - cur}건</b> 남았어요</>}
       </p>
       {rounds > 0 && (
@@ -65,7 +65,7 @@ function StampBoard({ count, target, given }: { count: number; target: number; g
           {Array.from({ length: rounds }, (_, i) => i + 1).map((r) => `${r}회차 ${given.includes(r) ? "보상 받음 ✓" : "보상 준비 중"}`).join(" · ")}
         </p>
       )}
-      <p className="mt-1 text-xs text-muted">내가 쓴 일지를 그룹 친구가 '함께 했어요'로 확인하면 도장이 찍혀요. {target}개를 모으면 선생님이 보상을 줘요!</p>
+      <p className="mt-1 text-xs text-muted">활동일지를 쓸 때마다 도장이 하나씩 찍혀요. {target}개를 모으면 선생님이 보상을 줘요!</p>
     </div>
   );
 }
@@ -89,7 +89,7 @@ export function GroupCard({ g, children }: { g: StudyGroup; children?: React.Rea
       <div className="mt-4 border-t border-line pt-3">
         <div className="mb-1.5 flex justify-between text-sm"><b className="text-brand">{pct}%</b><span>{hm(g.total_minutes)} / {hm(g.target_minutes)}</span></div>
         <Progress value={pct} />
-        <p className="mt-1.5 text-xs text-muted">일지 {g.log_count}건 · 확인 대기 {g.pending_count}건{g.total_minutes >= g.target_minutes && g.pending_count === 0 ? " · 🎉 목표 달성" : ""}</p>
+        <p className="mt-1.5 text-xs text-muted">일지 {g.log_count}건{g.total_minutes >= g.target_minutes ? " · 🎉 목표 달성" : ""}</p>
       </div>
       {children}
     </article>
@@ -102,7 +102,7 @@ export function LogCard({ log, group, action }: { log: StudyLog; group?: StudyGr
     <article className="rounded-xl border border-line bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-sm"><b>{log.activity_date}</b><span className="chip-gray">{log.subject}</span>
-          <span className={log.status === "confirmed" ? "chip" : "chip-warn"}>{log.status === "confirmed" ? "확정" : "확인 대기"}</span></div>
+</div>
         <div className="flex gap-2">{action}</div>
       </div>
       <p className="mt-1.5 text-xs text-muted">{group?.name} · {author?.name} 작성 · {hm(log.minutes)} · {log.mentor_id ? `멘토 ${group?.members?.find((m) => m.id === log.mentor_id)?.name ?? ""}` : "함께 공부"}</p>
@@ -141,11 +141,6 @@ export default function StudyStudent({ me }: { me: Me }) {
     toast(accept ? "수락했어요. 모두 수락하면 그룹이 만들어져요." : "초대를 거절했어요.");
     load();
   };
-  const confirm = async (id: string) => {
-    const { error } = await supabase.rpc("confirm_study_log", { _id: id });
-    if (error) return toast(errMsg(error), "err");
-    toast("활동을 확인했어요."); load();
-  };
   const remove = async (log: StudyLog) => {
     if (!window.confirm("이 활동일지를 삭제할까요?")) return;
     const { error } = await supabase.from("study_logs").delete().eq("id", log.id);
@@ -178,15 +173,10 @@ export default function StudyStudent({ me }: { me: Me }) {
               <div className="space-y-3">
                 {myLogs.map((log) => {
                   const g = d.groups.find((x) => x.id === log.group_id);
-                  const canConfirm = log.status === "pending" && log.author_id !== me.id;
-                  return <LogCard key={log.id} log={log} group={g} action={<>
-                    {canConfirm && <button className="btn btn-sm" onClick={() => confirm(log.id)}>함께 했어요 ✓</button>}
-                    {log.author_id === me.id && log.status === "pending" && <button className="btn-danger" onClick={() => remove(log)}>삭제</button>}
-                  </>} />;
+                  return <LogCard key={log.id} log={log} group={g} action={log.author_id === me.id && <button className="btn-danger" onClick={() => remove(log)}>삭제</button>} />;
                 })}
               </div>
             )}
-            <p className="mt-3 text-xs text-muted">같은 그룹 친구가 쓴 일지는 내가 '함께 했어요'를 눌러야 확정되고 공부 시간에 더해져요.</p>
           </Section>
         </>
       )}
@@ -321,7 +311,7 @@ function LogForm({ groups, me, onSaved }: { groups: StudyGroup[]; me: Me; onSave
         mentor_id: mentor || null, content: f.content.trim(), reflection: f.reflection.trim(), photo_paths: paths,
       });
       if (error) throw error;
-      toast("활동일지를 저장했어요. 그룹 친구가 확인하면 확정돼요.");
+      toast("활동일지를 저장했어요. 도장 하나 획득! 📚");
       setF({ ...f, content: "", reflection: "" }); setFiles([]); setFileKey((k) => k + 1);
       onSaved();
     } catch (err) {

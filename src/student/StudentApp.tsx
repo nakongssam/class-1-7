@@ -63,7 +63,6 @@ export default function StudentApp({ me }: { me: Me }) {
 function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   const [hero, setHero] = useState<{ names: string[]; left: number } | null | undefined>(undefined);
   const [invites, setInvites] = useState(0);
-  const [toConfirm, setToConfirm] = useState(0);
   const [monthCheck, setMonthCheck] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
 
@@ -80,11 +79,6 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
       const { data: groups } = await supabase.rpc("list_study_groups");
       const gs = (groups ?? []) as { id: string; status: string; members: { id: string; status: string }[] }[];
       setInvites(gs.filter((g) => g.status === "pending" && g.members?.some((m) => m.id === me.id && m.status === "pending")).length);
-      const active = gs.filter((g) => g.status === "active" && g.members?.some((m) => m.id === me.id && m.status === "accepted")).map((g) => g.id);
-      if (active.length) {
-        const { count } = await supabase.from("study_logs").select("id", { count: "exact", head: true }).in("group_id", active).eq("status", "pending").neq("author_id", me.id);
-        setToConfirm(count ?? 0);
-      }
       const [{ data: checks }, { data: done }] = await Promise.all([
         supabase.from("attendance_month_checks").select("month").order("month"),
         supabase.from("attendance_month_confirmations").select("month").eq("student_no", me.student_no),
@@ -127,8 +121,8 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
         <button onClick={() => go("study")} className="card relative text-left">
           <p className="text-2xl">📚</p>
           <p className="mt-2 font-bold">스터디그룹</p>
-          <p className="text-xs text-muted">{invites ? `초대 ${invites}건` : toConfirm ? `확인할 일지 ${toConfirm}건` : "활동 일지 쓰기"}</p>
-          {(invites > 0 || toConfirm > 0) && <span className="absolute right-4 top-4 size-2.5 rounded-full bg-rose" />}
+          <p className="text-xs text-muted">{invites ? `초대 ${invites}건` : "활동 일지 쓰기"}</p>
+          {invites > 0 && <span className="absolute right-4 top-4 size-2.5 rounded-full bg-rose" />}
         </button>
       </div>
 
