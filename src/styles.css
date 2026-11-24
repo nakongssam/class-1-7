@@ -35,7 +35,9 @@ input, textarea, select, button { font: inherit; }
 }
 
 /* 인쇄용 A4 한 장: 여백 10mm → 내용 영역 190mm × 277mm */
-.print-sheet { width: 190mm; height: 277mm; padding: 6mm; box-sizing: border-box; }
+.print-sheet { width: 190mm; height: 277mm; padding: 7mm; box-sizing: border-box; }
+.letter-sheet { background: #fffdf8; border: 2px solid #f3d9c4; border-radius: 6mm; box-shadow: inset 0 0 0 2.5mm #fffdf8, inset 0 0 0 3mm #f8e6d6; }
+.letter-font { font-family: "Gowun Dodum", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
 
 @page { size: A4; margin: 10mm; }
 @media print {
@@ -44,7 +46,7 @@ input, textarea, select, button { font: inherit; }
   main { padding: 0 !important; max-width: none !important; }
   .print-area { margin: 0 !important; }
   .print-area > * + * { margin-top: 0 !important; }
-  .print-sheet { box-shadow: none !important; outline: none !important; --tw-ring-shadow: 0 0 #0000 !important; break-after: page; page-break-after: always; padding: 0; }
+  .print-sheet { break-after: page; page-break-after: always; }
   .print-sheet:last-child { break-after: auto; page-break-after: auto; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

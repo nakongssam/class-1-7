@@ -491,35 +491,56 @@ function PrintSheet({ name, letters }: { name: string; letters: Msg[] }) {
   const [scale, setScale] = useState(1);
   const cols = letters.length > 24 ? 3 : 2;
   useLayoutEffect(() => {
-    const el = sheet.current, inner = body.current;
-    if (!el || !inner) return;
-    const cs = getComputedStyle(el);
-    const room = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    let sc = 1;
-    inner.style.fontSize = `${11 * sc}pt`;
-    while (inner.scrollHeight > room && sc > 0.4) {
-      sc -= 0.03;
+    const fit = () => {
+      const el = sheet.current, inner = body.current;
+      if (!el || !inner) return;
+      const cs = getComputedStyle(el);
+      const room = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      let sc = 1;
       inner.style.fontSize = `${11 * sc}pt`;
-    }
-    setScale(sc);
+      while (inner.scrollHeight > room && sc > 0.4) {
+        sc -= 0.03;
+        inner.style.fontSize = `${11 * sc}pt`;
+      }
+      setScale(sc);
+    };
+    fit();
+    document.fonts?.ready.then(fit); // 손글씨 느낌 글꼴이 늦게 불러와져도 다시 맞춤
   }, [letters, cols]);
   const counts = new Map<string, number>();
   letters.forEach((l) => new Set(l.strengths.map((r) => r.trim().replace(/\s+/g, " ")).filter(Boolean)).forEach((w) => counts.set(w, (counts.get(w) ?? 0) + 1)));
   const cloud = [...counts].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "ko"));
   const max = cloud[0]?.[1] ?? 1;
   const colors = ["#2f6b4f", "#b45309", "#be185d", "#1d4ed8", "#6d28d9"];
+  const notes = [
+    { bg: "#fff1f2", line: "#fda4af" }, { bg: "#ecfdf5", line: "#6ee7b7" }, { bg: "#eff6ff", line: "#93c5fd" },
+    { bg: "#fefce8", line: "#fcd34d" }, { bg: "#f5f3ff", line: "#c4b5fd" }, { bg: "#fff7ed", line: "#fdba74" },
+  ];
   return (
-    <div ref={sheet} className="print-sheet mx-auto overflow-hidden bg-white shadow-sm ring-1 ring-line">
-      <div ref={body} style={{ fontSize: `${11 * scale}pt` }} className="leading-snug">
-        <h2 className="text-center font-extrabold" style={{ fontSize: "2em" }}>💌 {name}에게</h2>
-        <div className="mx-auto mt-[0.6em] mb-[0.8em] flex flex-wrap items-center justify-center gap-x-[0.6em] gap-y-[0.2em] border-b border-line pb-[0.6em]">
-          {cloud.map(([w, n], i) => <span key={w} className="font-bold" style={{ fontSize: `${0.9 + (n / max) * 1.1}em`, color: colors[i % 5] }}>{w}</span>)}
+    <div ref={sheet} className="print-sheet letter-sheet mx-auto overflow-hidden shadow-sm">
+      <div ref={body} style={{ fontSize: `${11 * scale}pt` }} className="letter-font leading-snug">
+        <p className="text-center tracking-[0.3em] text-[#b08968]" style={{ fontSize: "0.8em" }}>1학년 7반 · 칭찬 릴레이</p>
+        <h2 className="mt-[0.15em] text-center font-bold text-[#3f3a36]" style={{ fontSize: "2.1em" }}>
+          <span className="text-[#f472b6]">♥</span> {name}에게 <span className="text-[#f472b6]">♥</span>
+        </h2>
+        <div className="mx-auto mt-[0.6em] mb-[0.8em] rounded-[1em] px-[0.8em] py-[0.6em]" style={{ background: "#fffaf0", border: "1.5px dashed #f1c27d" }}>
+          <p className="mb-[0.3em] text-center text-[#b08968]" style={{ fontSize: "0.8em" }}>친구들이 말해 준 나의 강점</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-[0.6em] gap-y-[0.15em]">
+            {cloud.map(([w, n], i) => <span key={w} className="font-bold" style={{ fontSize: `${0.9 + (n / max) * 1.1}em`, color: colors[i % 5] }}>{w}</span>)}
+          </div>
         </div>
-        <div style={{ columnCount: cols, columnGap: "0.8em" }}>
-          {letters.map((m) => (
-            <p key={m.id} className="mb-[0.5em] break-inside-avoid whitespace-pre-wrap rounded-md border border-line px-[0.6em] py-[0.4em]">{m.body}</p>
-          ))}
+        <div style={{ columnCount: cols, columnGap: "0.7em" }}>
+          {letters.map((m, i) => {
+            const c = notes[i % notes.length];
+            return (
+              <p key={m.id} className="relative mb-[0.55em] break-inside-avoid whitespace-pre-wrap rounded-[0.7em] px-[0.75em] pt-[0.55em] pb-[0.45em] text-[#3f3a36]"
+                style={{ background: c.bg, borderTop: `0.35em solid ${c.line}` }}>
+                <span className="mr-[0.2em] font-bold" style={{ color: c.line }}>“</span>{m.body}
+              </p>
+            );
+          })}
         </div>
+        <p className="mt-[0.4em] text-right text-[#b08968]" style={{ fontSize: "0.8em" }}>— 1학년 7반 친구들이 💌</p>
       </div>
     </div>
   );
