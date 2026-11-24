@@ -46,3 +46,10 @@ export function errMsg(e: unknown, fallback = "문제가 생겼어요. 다시 �
   }
   return fallback;
 }
+
+/** 그 주 월요일 (yyyy-mm-dd) */
+export function weekStart(day: string) {
+  const d = new Date(`${day}T12:00:00`);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return toDateString(d);
+}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Me } from "../App";
 import { ChangePin, signOut } from "../App";
 import { supabase } from "../lib/supabase";
-import { formatDay } from "../lib/util";
+import { formatDay, weekStart } from "../lib/util";
 import AttendanceStudent from "./Attendance";
 import RelayStudent from "./Relay";
 import StudyStudent from "./Study";
@@ -61,7 +61,7 @@ export default function StudentApp({ me }: { me: Me }) {
 }
 
 function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
-  const [hero, setHero] = useState<{ name: string; wrote: boolean } | null | undefined>(undefined);
+  const [hero, setHero] = useState<{ names: string[]; left: number } | null | undefined>(undefined);
   const [invites, setInvites] = useState(0);
   const [toConfirm, setToConfirm] = useState(0);
   const [monthCheck, setMonthCheck] = useState<string | null>(null);
@@ -70,11 +70,13 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   useEffect(() => {
     (async () => {
       await supabase.rpc("relay_auto_publish_today");
-      const { data: sch } = await supabase.from("relay_schedule").select("student_id, students(name)").eq("day", me.today).eq("published", true).maybeSingle();
-      if (sch) {
-        const { data: mine } = await supabase.from("relay_messages").select("id").eq("day", me.today).eq("target_student_id", sch.student_id).eq("author_student_id", me.id).maybeSingle();
-        setHero({ name: (sch.students as unknown as { name: string } | null)?.name ?? "", wrote: !!mine });
-      } else setHero(null);
+      const ws = weekStart(me.today);
+      const [{ data: acts }, { data: mine }] = await Promise.all([
+        supabase.from("relay_hero_activities").select("day, student_id, students(name)").gte("day", ws).lte("day", me.today),
+        supabase.from("relay_messages").select("day, target_student_id").eq("author_student_id", me.id).gte("day", ws),
+      ]);
+      const list = (acts ?? []) as unknown as { day: string; student_id: string; students: { name: string } | null }[];
+      setHero(list.length ? { names: list.map((a) => a.students?.name ?? ""), left: list.filter((a) => !(mine ?? []).some((m) => m.day === a.day && m.target_student_id === a.student_id)).length } : null);
       const { data: groups } = await supabase.rpc("list_study_groups");
       const gs = (groups ?? []) as { id: string; status: string; members: { id: string; status: string }[] }[];
       setInvites(gs.filter((g) => g.status === "pending" && g.members?.some((m) => m.id === me.id && m.status === "pending")).length);
@@ -107,13 +109,13 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
       )}
 
       <button onClick={() => go("relay")} className="card w-full text-left">
-        <p className="text-sm text-muted">💌 오늘의 칭찬 주인공</p>
+        <p className="text-sm text-muted">💌 이번 주 칭찬 주인공</p>
         {hero === undefined ? <p className="mt-2 text-muted">…</p> : hero ? (
-          <div className="mt-1 flex items-end justify-between gap-3">
-            <p className="text-3xl font-extrabold text-brand">{hero.name}</p>
-            <span className={hero.wrote ? "chip" : "chip-warn"}>{hero.wrote ? "편지 보냄" : "편지 쓰러 가기 →"}</span>
+          <div className="mt-1">
+            <p className="text-xl font-extrabold text-brand">{hero.names.join(" · ")}</p>
+            <span className={hero.left ? "chip-warn mt-2" : "chip mt-2"}>{hero.left ? `아직 ${hero.left}명에게 안 썼어요 →` : "모두 보냈어요 💛"}</span>
           </div>
-        ) : <p className="mt-1 font-semibold">아직 공개 전이에요</p>}
+        ) : <p className="mt-1 font-semibold">평일에 공개돼요</p>}
       </button>
 
       <div className="grid grid-cols-2 gap-3">

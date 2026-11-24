@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Me } from "../App";
 import { callFn, supabase } from "../lib/supabase";
-import { formatDay } from "../lib/util";
+import { weekStart } from "../lib/util";
 import { Empty, Section, Tabs, useToast } from "../ui/kit";
 
 type Activity = { day: string; student_id: string; students: { name: string } | null };
@@ -28,32 +28,41 @@ const SUB = ["✉️ 편지 쓰기", "💌 내 결과"] as const;
 
 export default function RelayStudent({ me }: { me: Me }) {
   const [sub, setSub] = useState<(typeof SUB)[number]>(SUB[0]);
-  const [todayHero, setTodayHero] = useState<Activity | null | undefined>(undefined);
-  const [acts, setActs] = useState<Activity[]>([]);
+  const [acts, setActs] = useState<Activity[] | null>(null);
   const [mine, setMine] = useState<{ day: string; target_student_id: string }[]>([]);
   const [sel, setSel] = useState("");
   const [inbox, setInbox] = useState<{ day: string; strengths: string[]; body: string }[]>([]);
+  const ws = weekStart(me.today);
 
   const load = useCallback(async () => {
-    await supabase.rpc("relay_auto_publish_today"); // 평일이면 오늘 주인공 자동 공개 (이미 있으면 그대로)
-    const [{ data: t }, { data: a }, { data: m }, { data: ib }] = await Promise.all([
-      supabase.from("relay_schedule").select("day, student_id, students(name)").eq("day", me.today).eq("published", true).maybeSingle(),
+    await supabase.rpc("relay_auto_publish_today"); // 평일이면 이번 주 주인공을 자동으로 채움
+    const [{ data: a }, { data: m }, { data: ib }] = await Promise.all([
       supabase.from("relay_hero_activities").select("day, student_id, students(name)").lte("day", me.today).order("day", { ascending: false }),
       supabase.from("relay_messages").select("day, target_student_id").eq("author_student_id", me.id),
       supabase.rpc("relay_my_inbox"),
     ]);
-    setTodayHero((t as unknown as Activity) ?? null);
     setActs((a ?? []) as unknown as Activity[]);
     setMine(m ?? []);
     setInbox((ib ?? []) as typeof inbox);
   }, [me.id, me.today]);
-  useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
+  useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, [load]);
 
-  const star = sel ? acts.find((a) => `${a.day}:${a.student_id}` === sel) : todayHero;
-  const day = star?.day ?? me.today;
-  const written = !!star && mine.some((x) => x.day === day && x.target_student_id === star.student_id);
-  const previous = acts.filter((a) => !(todayHero && a.day === todayHero.day && a.student_id === todayHero.student_id));
-  const missed = previous.filter((a) => !mine.some((x) => x.day === a.day && x.target_student_id === a.student_id));
+  if (!acts) return <p className="py-10 text-center text-sm text-muted">불러오는 중…</p>;
+  const key = (a: Activity) => `${a.day}:${a.student_id}`;
+  const done = (a: Activity) => mine.some((x) => x.day === a.day && x.target_student_id === a.student_id);
+  const thisWeek = acts.filter((a) => a.day >= ws);
+  const previous = acts.filter((a) => a.day < ws);
+  const missedPrev = previous.filter((a) => !done(a));
+  const star = acts.find((a) => key(a) === sel) ?? thisWeek.find((a) => !done(a)) ?? thisWeek[0];
+  const written = !!star && done(star);
+
+  const HeroButton = ({ a }: { a: Activity }) => (
+    <button onClick={() => setSel(key(a))}
+      className={`rounded-xl border px-3 py-2.5 text-left text-sm ${star && key(star) === key(a) ? "border-brand bg-brand text-white" : "border-line bg-white"}`}>
+      <span className="block font-bold">{a.students?.name}{a.student_id === me.id ? " (나)" : ""}</span>
+      <span className={`text-xs ${star && key(star) === key(a) ? "text-white/80" : done(a) ? "text-brand" : "text-rose"}`}>{done(a) ? "✓ 보냈어요" : "아직 안 썼어요"}</span>
+    </button>
+  );
 
   return (
     <>
@@ -61,39 +70,29 @@ export default function RelayStudent({ me }: { me: Me }) {
       <Tabs tabs={SUB} value={sub} onChange={setSub} />
       {sub === SUB[0] && (
         <>
-          {previous.length > 0 && (
-            <div>
-              <p className="mb-2 text-sm text-muted">이전 주인공 {missed.length > 0 && <span className="text-rose">· 아직 안 쓴 친구 {missed.length}명</span>}</p>
-              <div className="flex flex-wrap gap-2">
-                <button className={sel === "" ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => setSel("")}>오늘의 주인공</button>
-                {previous.map((a) => {
-                  const v = `${a.day}:${a.student_id}`;
-                  const done = mine.some((x) => x.day === a.day && x.target_student_id === a.student_id);
-                  return <button key={v} className={sel === v ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => setSel(v)}>
-                    {formatDay(a.day)} · {a.students?.name}{done ? " ✓" : ""}
-                  </button>;
-                })}
-              </div>
-            </div>
-          )}
-          <Section>
-            <div className="text-center">
-              <p className="text-sm text-muted">{formatDay(day)} · {sel ? "선택한 주인공" : "오늘의 주인공"}</p>
-              {todayHero === undefined ? <p className="mt-3">…</p> : star ? (
-                <p className="mt-2 text-4xl font-extrabold text-brand">{star.students?.name}</p>
-              ) : <p className="mt-2 text-xl font-bold">오늘의 주인공 공개를 기다려요 💌</p>}
-            </div>
+          <Section title={`이번 주 주인공 ${thisWeek.length}명`} right={<span className="text-xs text-muted">{thisWeek.filter(done).length}/{thisWeek.length} 작성</span>}>
+            {thisWeek.length ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{thisWeek.map((a) => <HeroButton key={key(a)} a={a} />)}</div>
+            ) : <Empty>이번 주 주인공은 평일에 공개돼요 💌</Empty>}
+            <p className="mt-3 text-xs text-muted">이번 주 안에 주인공 모두에게 편지를 써 주세요. 이름 없이 전달돼요.</p>
           </Section>
-          {star && star.student_id === me.id && (
+          {previous.length > 0 && (
+            <details className="card" open={missedPrev.length > 0 && !thisWeek.some((a) => !done(a))}>
+              <summary className="cursor-pointer text-sm font-bold">지난 주인공 {previous.length}명 {missedPrev.length > 0 && <span className="text-rose">· 아직 안 쓴 친구 {missedPrev.length}명</span>}</summary>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">{previous.map((a) => <HeroButton key={key(a)} a={a} />)}</div>
+            </details>
+          )}
+          {star && star.student_id === me.id && !written && (
             <Section className="bg-warm text-center">
-              <p className="text-xl font-bold">🎉 {day === me.today ? "오늘은" : "이날은"} {me.name}, 네가 주인공이야!</p>
+              <p className="text-xl font-bold">🎉 {me.name}, 네가 주인공이야!</p>
               <p className="mt-1 text-sm text-muted">너도 자신에게 강점과 응원의 말을 적어 줘!</p>
             </Section>
           )}
           {star && (written ? (
-            <Section className="text-center"><p className="text-xl font-bold">편지를 보냈어요 💛</p></Section>
+            <Section className="text-center"><p className="text-lg font-bold">{star.students?.name}에게 편지를 보냈어요 💛</p>
+              {thisWeek.some((a) => !done(a)) && <p className="mt-1 text-sm text-muted">위에서 아직 안 쓴 친구를 골라 주세요.</p>}</Section>
           ) : (
-            <WriteForm key={`${day}:${star.student_id}`} day={day} targetId={star.student_id} targetName={star.students?.name ?? ""} onDone={load} />
+            <WriteForm key={key(star)} day={star.day} targetId={star.student_id} targetName={star.students?.name ?? ""} onDone={() => { setSel(""); load(); }} />
           ))}
         </>
       )}

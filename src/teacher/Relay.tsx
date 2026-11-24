@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Me } from "../App";
 import { callFn, supabase, type Student } from "../lib/supabase";
-import { errMsg, formatDay, nextWeekdays } from "../lib/util";
+import { errMsg, formatDay, weekStart } from "../lib/util";
 import { Empty, Loading, Progress, Section, Tabs, useToast } from "../ui/kit";
 import { StrengthCloud } from "../student/Relay";
 
@@ -12,7 +12,7 @@ type Msg = {
 type Sched = { day: string; student_id: string; published: boolean };
 type D = { students: Student[]; schedule: Sched[]; activities: { day: string; student_id: string }[]; msgs: Msg[] };
 
-const SUB = ["현황", "편지 검토", "주인공 정하기", "결과 공개·인쇄"] as const;
+const SUB = ["현황", "편지 검토", "이번 주 주인공", "결과 공개·인쇄"] as const;
 
 export default function RelayTeacher({ me }: { me: Me }) {
   const toast = useToast();
@@ -42,7 +42,7 @@ export default function RelayTeacher({ me }: { me: Me }) {
       <Tabs tabs={SUB} value={sub} onChange={setSub} badges={{ "편지 검토": pending }} />
       {sub === "현황" && <Dashboard d={d} today={me.today} />}
       {sub === "편지 검토" && <Review d={d} refresh={load} />}
-      {sub === "주인공 정하기" && <Schedule d={d} today={me.today} refresh={load} />}
+      {sub === "이번 주 주인공" && <Week d={d} today={me.today} refresh={load} />}
       {sub === "결과 공개·인쇄" && <Reveal d={d} refresh={load} />}
     </>
   );
@@ -51,9 +51,9 @@ export default function RelayTeacher({ me }: { me: Me }) {
 function Dashboard({ d, today }: { d: D; today: string }) {
   const byId = new Map(d.students.map((s) => [s.id, s]));
   const writers = d.students.filter((s) => s.role === "student");
-  const todayStar = d.schedule.find((s) => s.day === today && s.published);
-  const [sel, setSel] = useState("today");
-  const hero = sel === "today" ? todayStar : d.activities.find((a) => `${a.day}:${a.student_id}` === sel);
+  const ws = weekStart(today);
+  const [sel, setSel] = useState(() => { const a = d.activities.find((x) => x.day >= ws && x.day <= today); return a ? `${a.day}:${a.student_id}` : ""; });
+  const hero = d.activities.find((a) => `${a.day}:${a.student_id}` === sel);
   const wrote = new Set(hero ? d.msgs.filter((m) => m.day === hero.day && m.target_student_id === hero.student_id).map((m) => m.author_student_id) : []);
   const done = writers.filter((s) => wrote.has(s.id));
   const notYet = writers.filter((s) => !wrote.has(s.id));
@@ -68,18 +68,18 @@ function Dashboard({ d, today }: { d: D; today: string }) {
     <div className="grid gap-4 lg:grid-cols-3">
       <Section title="주인공별 참여" className="lg:col-span-2">
         <select className="input mb-3" value={sel} onChange={(e) => setSel(e.target.value)} aria-label="주인공 선택">
-          <option value="today">오늘의 주인공 · {todayStar ? byId.get(todayStar.student_id)?.name : "없음"}</option>
-          {d.activities.filter((a) => a.day <= today).map((a) => <option key={`${a.day}:${a.student_id}`} value={`${a.day}:${a.student_id}`}>{formatDay(a.day)} · {byId.get(a.student_id)?.name}</option>)}
+          {!d.activities.length && <option value="">주인공 없음</option>}
+          {d.activities.filter((a) => a.day <= today).map((a) => <option key={`${a.day}:${a.student_id}`} value={`${a.day}:${a.student_id}`}>{a.day >= ws ? "이번 주" : `${formatDay(weekStart(a.day))} 주`} · {byId.get(a.student_id)?.name}</option>)}
         </select>
         {hero ? (
           <>
-            <p className="text-sm text-muted">{formatDay(hero.day)} · 주인공 <b className="text-ink">{byId.get(hero.student_id)?.name}</b></p>
+            <p className="text-sm text-muted">주인공 <b className="text-ink">{byId.get(hero.student_id)?.name}</b></p>
             <p className="mt-1 text-3xl font-extrabold text-brand">{done.length}<span className="text-base text-muted"> / {writers.length}명</span></p>
             <Progress value={(done.length / Math.max(writers.length, 1)) * 100} />
             <p className="mt-3 text-sm text-muted">아직 안 쓴 친구 ({notYet.length})</p>
             <div className="mt-1 flex flex-wrap gap-1">{notYet.map((s) => <span key={s.id} className="chip-gray">{s.name}</span>)}</div>
           </>
-        ) : <Empty>오늘 공개된 주인공이 없어요.</Empty>}
+        ) : <Empty>공개된 주인공이 없어요.</Empty>}
       </Section>
       <Section title="진행 현황">
         <p className="text-3xl font-extrabold text-brand">{heroCount}<span className="text-base text-muted"> / {writers.length}명</span></p>
@@ -182,90 +182,77 @@ function ReviewItem({ m, from, to, refresh }: { m: Msg; from: string; to: string
   );
 }
 
-function Schedule({ d, today, refresh }: { d: D; today: string; refresh: () => void }) {
+function Week({ d, today, refresh }: { d: D; today: string; refresh: () => void }) {
   const toast = useToast();
   const byId = new Map(d.students.map((s) => [s.id, s]));
-  const current = d.schedule.find((s) => s.day === today);
+  const ws = weekStart(today);
+  const writers = d.students.filter((s) => s.role === "student");
   const done = new Set(d.activities.map((a) => a.student_id));
-  const candidates = d.students.filter((s) => s.role === "student" && !done.has(s.id));
-  const history = d.schedule.filter((s) => s.published).sort((a, b) => b.day.localeCompare(a.day));
+  const left = writers.filter((s) => !done.has(s.id));
+  const thisWeek = d.activities.filter((a) => a.day >= ws);
+  const [perWeek, setPerWeek] = useState<number | null>(null);
   const [pick, setPick] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => { supabase.from("class_settings").select("relay_per_week").eq("id", 1).single().then(({ data }) => setPerWeek(data?.relay_per_week ?? 5)); }, []);
+  const lettersFor = (a: { day: string; student_id: string }) => d.msgs.filter((m) => m.day === a.day && m.target_student_id === a.student_id).length;
   const rpc = async (fn: string, args: Record<string, unknown>, ok: string) => {
     setBusy(true);
     const { error } = await supabase.rpc(fn, args);
     setBusy(false);
-    if (error) return toast(error.message.includes("no_candidate") ? "남은 후보가 없어요." : error.message.includes("already_published") ? "이미 공개했어요." : errMsg(error), "err");
+    if (error) return toast(error.message.includes("no_candidate") ? "남은 후보가 없어요." : error.message.includes("has_letters") ? "이미 편지를 받은 주인공은 바꿀 수 없어요." : errMsg(error), "err");
     toast(ok); setPick(""); refresh();
   };
-  const label = (s: Student) => (s.role === "teacher" ? "선생님" : `${s.student_no} ${s.name}`) + (done.has(s.id) ? " · 완료" : "");
+  const savePerWeek = async (n: number) => {
+    setPerWeek(n);
+    const { error } = await supabase.from("class_settings").update({ relay_per_week: n }).eq("id", 1);
+    if (error) return toast(errMsg(error), "err");
+    await supabase.rpc("relay_auto_publish_today");
+    toast(`매주 ${n}명씩 공개돼요.`);
+    refresh();
+  };
+  const weeks = [...new Set(d.activities.filter((a) => a.day < ws).map((a) => weekStart(a.day)))].sort().reverse();
   return (
     <div className="space-y-4">
-      <Section title={`${formatDay(today)} 오늘의 주인공`}>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-3xl font-extrabold text-brand">{current ? byId.get(current.student_id)?.name : "아직 선택하지 않았어요"}</span>
-          <span className={current?.published ? "chip" : "chip-gray"}>{current?.published ? "공개 중" : "미공개"}</span>
+      <Section title={`이번 주 주인공 (${formatDay(ws)} 주)`} right={<span className="text-sm text-muted">남은 후보 {left.length}명</span>}>
+        <p className="-mt-1 mb-3 text-sm text-muted">매주 월요일 0시에 아직 주인공을 안 한 학생 중에서 랜덤으로 공개돼요. 학생들은 그 주 내내 편지를 쓸 수 있어요.</p>
+        {!thisWeek.length ? <Empty>이번 주 주인공이 아직 없어요.</Empty> : (
+          <ul className="divide-y divide-line">
+            {thisWeek.map((a) => {
+              const n = lettersFor(a);
+              return (
+                <li key={`${a.day}:${a.student_id}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                  <span><b>{byId.get(a.student_id)?.name}</b> <span className="text-sm text-muted">· 편지 {n}통</span></span>
+                  <button className="btn-outline btn-sm" disabled={busy || n > 0} title={n > 0 ? "이미 편지를 받아서 바꿀 수 없어요" : ""}
+                    onClick={() => confirm(`${byId.get(a.student_id)?.name} 대신 다른 학생을 랜덤으로 뽑을까요?`) && rpc("relay_swap_hero", { _day: a.day, _old: a.student_id }, "다른 학생으로 바꿨어요.")}>🎲 다른 학생으로</button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+          <button className="btn-outline btn-sm" disabled={busy || !left.length} onClick={() => rpc("relay_add_hero", {}, "한 명 더 뽑았어요.")}>🎲 이번 주에 한 명 더</button>
+          <select className="input py-1.5 text-sm sm:w-56" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="학생 직접 추가">
+            <option value="">학생 직접 추가</option>
+            {d.students.filter((s) => !thisWeek.some((a) => a.student_id === s.id)).map((s) => <option key={s.id} value={s.id}>{s.role === "teacher" ? "선생님" : `${s.student_no} ${s.name}`}{done.has(s.id) ? " · 했음" : ""}</option>)}
+          </select>
+          <button className="btn-outline btn-sm" disabled={busy || !pick} onClick={() => rpc("relay_add_hero", { _student_id: pick }, "추가했어요.")}>추가</button>
         </div>
-        {!current?.published ? (
-          <div className="mt-4 space-y-3">
-            <button className="btn-outline" disabled={busy || !candidates.length} onClick={() => rpc("relay_choose_hero", { _day: today }, "골랐어요. 아직 학생에게는 안 보여요.")}>🎲 랜덤으로 뽑기 · 남은 {candidates.length}명</button>
-            <div className="flex flex-wrap gap-2">
-              <select className="input sm:w-64" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="학생 직접 선택"><option value="">학생 직접 선택</option>{d.students.map((s) => <option key={s.id} value={s.id}>{label(s)}</option>)}</select>
-              <button className="btn-outline" disabled={busy || !pick} onClick={() => rpc("relay_choose_hero", { _day: today, _student_id: pick }, "선택했어요.")}>선택 확정</button>
-            </div>
-            <button className="btn" disabled={busy || !current} onClick={() => confirm(`${byId.get(current!.student_id)?.name} 학생을 오늘의 주인공으로 공개할까요?`) && rpc("relay_publish", { _day: today }, "오늘의 주인공을 공개했어요!")}>👀 오늘의 주인공 공개</button>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-2 rounded-xl border border-line p-4">
-            <p className="text-sm text-muted">한 명 더 하거나 바꾸고 싶을 때 써요. 바꾸면 바로 공개되고, 이미 받은 편지는 그대로 남아요.</p>
-            <div className="flex flex-wrap gap-2">
-              <button className="btn-outline btn-sm" disabled={busy} onClick={() => confirm("랜덤으로 새 주인공을 뽑아 바로 공개할까요?") && rpc("relay_replace_today", {}, "새 주인공을 공개했어요!")}>🎲 랜덤으로 바꾸기</button>
-              <select className="input py-1.5 text-sm sm:w-56" value={pick} onChange={(e) => setPick(e.target.value)} aria-label="바꿀 학생"><option value="">학생 직접 선택</option>{d.students.map((s) => <option key={s.id} value={s.id}>{label(s)}</option>)}</select>
-              <button className="btn-outline btn-sm" disabled={busy || !pick} onClick={() => confirm(`${byId.get(pick)?.name}(으)로 바꿔 바로 공개할까요?`) && rpc("relay_replace_today", { _student_id: pick }, "바꿨어요!")}>이 학생으로 바꾸기</button>
-            </div>
-          </div>
+      </Section>
+      <Section title="한 주에 몇 명?">
+        <div className="flex flex-wrap gap-2">
+          {[3, 4, 5, 6, 7].map((n) => <button key={n} className={perWeek === n ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => savePerWeek(n)}>{n}명</button>)}
+        </div>
+        <p className="mt-2 text-xs text-muted">남은 {left.length}명 기준으로 약 {perWeek ? Math.ceil(left.length / perWeek) : "-"}주 더 진행돼요. 이번 주 인원을 늘리면 바로 채워져요.</p>
+      </Section>
+      <Section title="지난 주인공">
+        {!weeks.length ? <Empty>아직 없어요.</Empty> : (
+          <ul className="divide-y divide-line text-sm">
+            {weeks.map((w) => <li key={w} className="flex flex-wrap justify-between gap-2 py-2"><span className="text-muted">{formatDay(w)} 주</span>
+              <span>{d.activities.filter((a) => a.day >= w && a.day < (() => { const x = new Date(`${w}T12:00:00`); x.setDate(x.getDate() + 7); return x.toISOString().slice(0, 10); })()).map((a) => byId.get(a.student_id)?.name).join(", ")}</span></li>)}
+          </ul>
         )}
       </Section>
-      <Upcoming d={d} today={today} byId={byId} label={label} refresh={refresh} />
-      <Section title={`지금까지의 주인공 · ${history.length}회`}>
-        {!history.length ? <Empty>아직 없어요.</Empty> : <ul className="divide-y divide-line text-sm">{history.map((h) => <li key={h.day} className="flex justify-between py-2"><span className="text-muted">{formatDay(h.day)}</span><span>{byId.get(h.student_id)?.name}</span></li>)}</ul>}
-      </Section>
     </div>
-  );
-}
-
-function Upcoming({ d, today, byId, label, refresh }: { d: D; today: string; byId: Map<string, Student>; label: (s: Student) => string; refresh: () => void }) {
-  const toast = useToast();
-  const days = nextWeekdays(today, 5);
-  const planned = new Map(d.schedule.filter((s) => s.day > today).map((s) => [s.day, s]));
-  const [picks, setPicks] = useState<Record<string, string>>({});
-  const run = async (fn: string, args: Record<string, unknown>, ok: string) => {
-    const { error } = await supabase.rpc(fn, args);
-    if (error) return toast(error.message.includes("no_candidate") ? "남은 후보가 없어요." : errMsg(error), "err");
-    toast(ok); refresh();
-  };
-  return (
-    <Section title="다음 주인공 미리 정하기">
-      <p className="-mt-1 mb-3 text-sm text-muted">평일(월~금)에는 0시가 되면 자동으로 공개돼요. 여기서 정해 둔 학생이 있으면 그 학생이, 없으면 아직 주인공을 안 한 학생 중 랜덤으로 뽑혀요. 편지 쓰기는 그날이 되어야 열려요.</p>
-      <ul className="space-y-2">
-        {days.map((day) => {
-          const p = planned.get(day);
-          return (
-            <li key={day} className="flex flex-wrap items-center gap-2 rounded-xl border border-line p-3">
-              <span className="w-28 text-sm text-muted">{formatDay(day)}</span>
-              <span className="min-w-20 font-bold text-brand">{p ? byId.get(p.student_id)?.name : "—"}</span>
-              {p?.published && <span className="chip">공개됨</span>}
-              <span className="ml-auto flex flex-wrap gap-1.5">
-                <button className="btn-outline btn-sm" onClick={() => run("relay_choose_hero", { _day: day }, `${formatDay(day)} 주인공을 골랐어요.`)}>🎲</button>
-                <select className="input py-1 text-xs sm:w-44" value={picks[day] ?? ""} onChange={(e) => setPicks({ ...picks, [day]: e.target.value })} aria-label="학생 선택"><option value="">직접 선택</option>{d.students.map((s) => <option key={s.id} value={s.id}>{label(s)}</option>)}</select>
-                <button className="btn-outline btn-sm" disabled={!picks[day]} onClick={() => run("relay_choose_hero", { _day: day, _student_id: picks[day] }, "선택했어요.")}>확정</button>
-                <button className="btn-outline btn-sm" disabled={!p || p.published} onClick={() => confirm(`${formatDay(day)} 주인공을 미리 공개할까요?`) && run("relay_publish", { _day: day }, "미리 공개했어요.")}>공개</button>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </Section>
   );
 }
 

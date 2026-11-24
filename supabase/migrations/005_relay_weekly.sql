@@ -1,0 +1,5 @@
+-- 칭찬 릴레이 주간 방식 (Supabase 마이그레이션 005_relay_weekly)
+-- class_settings.relay_per_week (기본 5)
+-- week_start(date), relay_auto_publish_today(): 평일마다 그 주 주인공이 N명 될 때까지 랜덤으로 채움 (주인공을 안 한 학생 중)
+-- relay_swap_hero(day, old, new?): 편지를 아직 안 받은 주인공 교체 / relay_add_hero(student?): 이번 주에 추가
+-- 예전 하루 1명 미공개 순서표 삭제
