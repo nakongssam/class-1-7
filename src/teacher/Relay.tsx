@@ -378,15 +378,15 @@ function Announcement({ names, ws }: { names: string[]; ws: string }) {
   const make = () => [
     `💌 [1-7 칭찬 릴레이] 이번 주 주인공 (${start}~${end})`,
     "",
-    "이번 주 주인공은",
-    names.length ? names.map((n) => `【${n}】`).join(" ") : "【○○○】",
-    "입니다.",
+    "이번 주 주인공은 🎉",
+    names.length ? names.join(", ") : "○○○",
+    "입니다!",
     "",
     "- 모두 빠짐없이 참여해서 주인공 한 명 한 명에게 강점과 응원의 말을 써 주세요.",
     "- 지난 주인공 중에 아직 편지를 안 쓴 친구가 있다면 이번 주에 같이 써 주세요. (칭찬 탭 → 지난 주인공)",
-    "- 받은 편지는 학기말에 한 번에 공개할 예정이에요. 진심을 담아 따뜻하게 써 주세요.",
+    "- 받은 편지는 학기말에 한 번에 공개할 예정이에요. 진심을 담아 따뜻하게 써 주세요 😊",
     "",
-    `${location.origin}${location.pathname}`,
+    `👉 ${location.origin}${location.pathname}`,
   ].join("\n");
   const [text, setText] = useState(make);
   useEffect(() => setText(make()), [names.join(","), ws]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -397,7 +397,7 @@ function Announcement({ names, ws }: { names: string[]; ws: string }) {
   return (
     <Section title="📢 월요일 안내 문구" right={<div className="flex gap-2"><button className="btn-outline btn-sm" onClick={() => setText(make())}>처음 문구로</button><button className="btn btn-sm" onClick={copy}>📋 복사</button></div>}>
       <textarea className="input min-h-56 text-sm leading-relaxed" value={text} onChange={(e) => setText(e.target.value)} aria-label="안내 문구" />
-      <p className="mt-2 text-xs text-muted">이번 주 주인공 이름이 자동으로 들어가요. 카톡은 굵은 글씨를 지원하지 않아서 이름을 【 】로 눈에 띄게 했어요.</p>
+      <p className="mt-2 text-xs text-muted">이번 주 주인공 이름이 자동으로 들어가요. 카톡의 굵게 서식은 붙여 넣은 뒤 휴대폰 카톡 입력창에서 이름 줄을 선택해 적용해 주세요.</p>
     </Section>
   );
 }
