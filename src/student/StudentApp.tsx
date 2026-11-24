@@ -8,7 +8,7 @@ import RelayStudent from "./Relay";
 import StudyStudent from "./Study";
 import CleanStudent, { RatingButtons } from "./Clean";
 import { roleLabel, type CleanSlot } from "../lib/clean";
-import { DutyBoard, stripServiceHours, type DutyRow } from "../lib/duties";
+import { DutyBoard, dutyItems, type DutyRow } from "../lib/duties";
 
 const TABS = [
   { id: "home", label: "홈", icon: "🏠" },
@@ -73,9 +73,16 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   const [duty, setDuty] = useState<{ duty: string; service1: string; service2: string; hours: number } | null>(null);
   const [allDuties, setAllDuties] = useState<DutyRow[] | null>(null);
   const [showDuties, setShowDuties] = useState(false);
+  const [dutyChecks, setDutyChecks] = useState<Map<string, string>>(new Map());
+  const rateDuty = async (key: string, rating: string) => {
+    const { error } = await supabase.from("duty_checks").upsert({ student_id: me.id, item_key: key, rating, checked_at: new Date().toISOString() });
+    if (error) return;
+    setDutyChecks(new Map(dutyChecks).set(key, rating));
+  };
   const [nextClean, setNextClean] = useState<CleanSlot | null>(null);
   useEffect(() => {
     supabase.from("class_duties").select("duty, service1, service2, hours").eq("student_id", me.id).maybeSingle().then(({ data }) => setDuty(data));
+    supabase.from("duty_checks").select("item_key, rating").eq("student_id", me.id).then(({ data }) => setDutyChecks(new Map((data ?? []).map((x) => [x.item_key, x.rating]))));
     supabase.from("clean_slots").select("*").eq("student_id", me.id).gte("day", me.today).order("day").limit(1).then(({ data }) => setNextClean(((data ?? []) as CleanSlot[])[0] ?? null));
   }, [me.id, me.today]);
   const openDuties = async () => {
@@ -148,11 +155,23 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
             🧹 {nextClean.day === me.today ? "오늘 청소 당번" : `${formatDay(nextClean.day)} 청소 당번`} · {roleLabel(nextClean.role)}{nextClean.done_at ? " ✓" : ""}
           </p>
         )}
-        {duty && (duty.service1 || duty.service2) && (
-          <dl className="mt-3 space-y-1 border-t border-line pt-3 text-sm">
-            {duty.service1 && <div className="flex gap-2"><dt className="w-16 shrink-0 text-muted">1학기 봉사</dt><dd>{stripServiceHours(duty.service1)}</dd></div>}
-            {duty.service2 && <div className="flex gap-2"><dt className="w-16 shrink-0 text-muted">2학기 봉사</dt><dd>{stripServiceHours(duty.service2)}</dd></div>}
-          </dl>
+        {duty && dutyItems(duty).length > 0 && (
+          <div className="mt-3 border-t border-line pt-3">
+            <p className="mb-2 text-xs text-muted">항목마다 얼마나 열심히 했는지 스스로 체크해요. (다시 누르면 바꿀 수 있어요)</p>
+            <ul className="space-y-2">
+              {dutyItems(duty).map((it) => (
+                <li key={it.key} className="flex flex-wrap items-center gap-2">
+                  <span className="chip-gray">{it.kind}</span>
+                  <span className="text-sm">{it.label}</span>
+                  <span className="ml-auto flex gap-1">
+                    {(["상", "중", "하"] as const).map((r) => (
+                      <button key={r} onClick={() => rateDuty(it.key, r)} className={dutyChecks.get(it.key) === r ? "btn btn-sm" : "btn-outline btn-sm"}>{r}</button>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <button className="btn-outline btn-sm mt-3" onClick={openDuties}>{showDuties ? "닫기" : "우리 반 1인 1역 전체 보기"}</button>
         {showDuties && <div className="mt-4"><DutyBoard rows={allDuties ?? []} showHours={false} highlight={me.name} /></div>}

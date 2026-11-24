@@ -1,0 +1,3 @@
+-- 013: 1인1역·봉사 항목별 셀프 체크 (DB에 적용 완료)
+-- duty_checks(student_id, item_key['duty' | 's1:항목' | 's2:항목'], rating 상/중/하, checked_at) 본인 쓰기, 본인·교사 읽기
+-- clean_signup: 오늘 날짜도 신청 가능 / list_class_duties: 봉사 내역 포함
