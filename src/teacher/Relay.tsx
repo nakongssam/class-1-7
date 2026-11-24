@@ -236,14 +236,14 @@ function Week({ d, today, refresh }: { d: D; today: string; refresh: () => void 
   return (
     <div className="space-y-4">
       <Section title={`이번 주 주인공 (${formatDay(ws)} 주)`} right={<span className="text-sm text-muted">남은 후보 {left.length}명</span>}>
-        <p className="-mt-1 mb-3 text-sm text-muted">매주 월요일 0시에 아직 주인공을 안 한 학생 중에서 랜덤으로 공개돼요. 학생들은 그 주 내내 편지를 쓸 수 있어요.</p>
+        <p className="-mt-1 mb-3 text-sm text-muted">매주 월요일 0시에 아직 주인공을 안 한 학생 중에서 남녀를 고르게 섞어 랜덤으로 공개돼요. 학생들은 그 주 내내 편지를 쓸 수 있어요.</p>
         {!thisWeek.length ? <Empty>이번 주 주인공이 아직 없어요.</Empty> : (
           <ul className="divide-y divide-line">
             {thisWeek.map((a) => {
               const n = lettersFor(a);
               return (
                 <li key={`${a.day}:${a.student_id}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-                  <span><b>{byId.get(a.student_id)?.name}</b> <span className="text-sm text-muted">· 편지 {n}통</span></span>
+                  <span><b>{byId.get(a.student_id)?.name}</b> <span className="text-sm text-muted">{byId.get(a.student_id)?.gender === "M" ? "(남)" : byId.get(a.student_id)?.gender === "F" ? "(여)" : ""} · 편지 {n}통</span></span>
                   <button className="btn-outline btn-sm" disabled={busy || n > 0} title={n > 0 ? "이미 편지를 받아서 바꿀 수 없어요" : ""}
                     onClick={() => confirm(`${byId.get(a.student_id)?.name} 대신 다른 학생을 랜덤으로 뽑을까요?`) && rpc("relay_swap_hero", { _day: a.day, _old: a.student_id }, "다른 학생으로 바꿨어요.")}>🎲 다른 학생으로</button>
                 </li>

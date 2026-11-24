@@ -86,7 +86,7 @@ function Accounts() {
       <Section title={`학생 계정 (${realStudents.length}명 · 비밀번호 설정 ${pinCount}명)`}>
         <div className="overflow-x-auto">
           <table className="table min-w-[560px]">
-            <thead><tr><th>학번</th><th>이름</th><th>상태</th><th></th></tr></thead>
+            <thead><tr><th>학번</th><th>이름</th><th>성별</th><th>상태</th><th></th></tr></thead>
             <tbody>
               {students.filter((s) => s.role !== "teacher").map((s) => {
                 const st = status.get(s.student_no);
@@ -100,6 +100,12 @@ function Accounts() {
                         <button className="text-left hover:underline" title="이름 고치기" onClick={() => setEditing({ id: s.id, name: s.name })}>{s.name}</button>
                       )}
                       {s.role === "test" && <span className="chip-warn ml-1">테스트</span>}
+                    </td>
+                    <td>
+                      <select className="rounded-lg border border-line bg-white px-1.5 py-1 text-sm" value={s.gender ?? ""} aria-label={`${s.name} 성별`}
+                        onChange={async (e) => { const { error } = await supabase.from("students").update({ gender: e.target.value || null }).eq("id", s.id); if (error) toast(errMsg(error), "err"); else load(); }}>
+                        <option value="">-</option><option value="M">남</option><option value="F">여</option>
+                      </select>
                     </td>
                     <td className="space-x-1 whitespace-nowrap">
                       {st?.pin_set ? <span className="chip">비밀번호 있음</span> : <span className="chip-gray">생년월일로 첫 로그인 대기</span>}
@@ -116,7 +122,7 @@ function Accounts() {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-xs text-muted">이름을 누르면 고칠 수 있어요. 5번 틀리면 5분 잠기고, '잠금 해제'로 바로 풀 수 있어요.</p>
+        <p className="mt-3 text-xs text-muted">성별은 칭찬 릴레이 주인공을 남녀 고르게 뽑는 데만 써요. 이름을 누르면 고칠 수 있어요. 5번 틀리면 5분 잠기고, '잠금 해제'로 바로 풀 수 있어요.</p>
       </Section>
       <div className="space-y-4">
         <Section title="🔑 내 비밀번호 바꾸기"><ChangePin /></Section>

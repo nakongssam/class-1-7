@@ -34,4 +34,5 @@ export type Student = {
   revealed: boolean;
   active: boolean;
   relay_reviewed_at?: string | null;
+  gender?: "M" | "F" | null;
 };

@@ -1,0 +1,2 @@
+-- students.gender ('M'|'F'), relay_pick_candidate(): 이번 주에 적은 성별 우선, 같으면 남은 인원 비율대로 랜덤
+-- relay_auto_publish_today / relay_swap_hero / relay_add_hero 가 이 함수를 사용 (Supabase 마이그레이션 007_gender_balance)
