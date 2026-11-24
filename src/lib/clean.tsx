@@ -134,25 +134,35 @@ export function cleanCounts(d: CleanData, today: string) {
 
 export function CleanCountGrid({ d, today, me }: { d: CleanData; today: string; me?: string }) {
   const rows = cleanCounts(d, today);
-  const stat = (label: string, n: number, color: string) => (
-    <div className="flex-1 text-center">
-      <p className="text-[10px] text-muted">{label}</p>
-      <p className={`text-sm font-bold ${n ? color : "text-stone-300"}`}>{n}회</p>
-    </div>
+  const half = Math.ceil(rows.length / 2);
+  const pill = (n: number, cls: string) => n ? <span className={`inline-block min-w-9 rounded-full px-2 py-0.5 text-xs font-bold ${cls}`}>{n}회</span> : <span className="text-stone-300">-</span>;
+  const table = (list: typeof rows) => (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-line text-xs">
+          <th className="py-1.5 text-left font-semibold text-muted">이름</th>
+          <th className="py-1.5 font-semibold text-sky-700">예약</th>
+          <th className="py-1.5 font-semibold text-brand">청소함</th>
+          <th className="py-1.5 font-semibold text-rose">안 함</th>
+        </tr>
+      </thead>
+      <tbody>
+        {list.map((r) => (
+          <tr key={r.id} className={`border-b border-line/60 ${r.id === me ? "bg-brand-soft" : r.missed ? "bg-rose-50/50" : ""}`}>
+            <td className={`py-1.5 pl-1 ${r.id === me ? "font-bold text-brand" : ""}`}>{r.name}</td>
+            <td className="py-1.5 text-center">{pill(r.planned, "bg-sky-100 text-sky-800")}</td>
+            <td className="py-1.5 text-center">{pill(r.done, "bg-brand-soft text-brand")}</td>
+            <td className="py-1.5 text-center">{pill(r.missed, "bg-rose-100 text-rose")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
   return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {rows.map((r) => (
-        <li key={r.id} className={`rounded-xl border px-2.5 py-2 ${r.id === me ? "border-brand bg-brand-soft" : "border-line bg-white"}`}>
-          <p className={`text-sm font-semibold ${r.id === me ? "text-brand" : ""}`}>{r.name}</p>
-          <div className="mt-1 flex divide-x divide-line">
-            {stat("예약", r.planned, "text-stone-700")}
-            {stat("청소함", r.done, "text-brand")}
-            {stat("안 함", r.missed, "text-rose")}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div>
+      <div className="grid gap-x-6 sm:grid-cols-2">{table(rows.slice(0, half))}{table(rows.slice(half))}</div>
+      <p className="mt-2 text-[11px] text-muted"><span className="text-sky-700">예약</span> 앞으로 할 청소 · <span className="text-brand">청소함</span> 청소하고 체크까지 함 · <span className="text-rose">안 함</span> 지난 날인데 체크 안 함</p>
+    </div>
   );
 }
 
