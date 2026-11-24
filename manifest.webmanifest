@@ -1,0 +1,9 @@
+{
+  "name": "1-7 우리반",
+  "short_name": "1-7 우리반",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#2f6b4f",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
