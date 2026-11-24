@@ -1,0 +1,4 @@
+-- 010: 교사용 그룹 수정/삭제 RPC (DB에 적용 완료)
+-- teacher_update_study_group(_group,_name,_plan,_schedule,_expected,_target,_members uuid[],_subjects jsonb)
+-- teacher_delete_study_group(_group) returns text[] (지울 사진 경로)
+-- 011: 일지 확인 단계 제거 (status 기본값 confirmed, 작성자 삭제 허용)

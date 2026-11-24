@@ -44,7 +44,7 @@ export async function loadStudy() {
 // 개인 보상: 본인이 쓴 일지 수
 export const myConfirmedCount = (logs: StudyLog[], id: string) => logs.filter((l) => l.author_id === id).length;
 
-function StampBoard({ count, target, given }: { count: number; target: number; given: number[] }) {
+function StampBoard({ count, target }: { count: number; target: number }) {
   const rounds = Math.floor(count / target);
   const cur = count - rounds * target;
   return (
@@ -60,12 +60,7 @@ function StampBoard({ count, target, given }: { count: number; target: number; g
         내가 쓴 일지 <b className="text-brand">{count}건</b>
         {rounds > 0 ? <> · 🎉 <b>{rounds}번</b> 달성!</> : <> · 달성까지 <b>{target - cur}건</b> 남았어요</>}
       </p>
-      {rounds > 0 && (
-        <p className="mt-1 text-xs text-muted">
-          {Array.from({ length: rounds }, (_, i) => i + 1).map((r) => `${r}회차 ${given.includes(r) ? "보상 받음 ✓" : "보상 준비 중"}`).join(" · ")}
-        </p>
-      )}
-      <p className="mt-1 text-xs text-muted">활동일지를 쓸 때마다 도장이 하나씩 찍혀요. {target}개를 모으면 선생님이 보상을 줘요!</p>
+      <p className="mt-1 text-xs text-muted">활동일지를 쓸 때마다 도장이 하나씩 찍혀요. {target}개 다 채워 볼까요? 💪</p>
     </div>
   );
 }
@@ -166,7 +161,7 @@ export default function StudyStudent({ me }: { me: Me }) {
       <Tabs tabs={SUB} value={sub} onChange={setSub} />
       {sub === "내 활동일지" && (
         <>
-          {myGroups.length > 0 && <Section title="🏅 내 스터디 도장판"><StampBoard count={myConfirmedCount(d.logs, me.id)} target={d.rewardTarget} given={d.rewards.filter((r) => r.student_id === me.id).map((r) => r.round)} /></Section>}
+          {myGroups.length > 0 && <Section title="🏅 내 스터디 도장판"><StampBoard count={myConfirmedCount(d.logs, me.id)} target={d.rewardTarget} /></Section>}
           <Section title="활동 인증하기"><LogForm groups={myGroups} me={me} onSaved={load} /></Section>
           <Section title={`내 그룹의 활동 (${myLogs.length})`}>
             {!myLogs.length ? <Empty>아직 활동일지가 없어요.</Empty> : (
