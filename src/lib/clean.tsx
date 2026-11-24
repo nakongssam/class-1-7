@@ -87,17 +87,22 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
               const full = slots.length >= ROLES.length;
               return (
                 <button key={j} onClick={() => onPick(day)}
-                  className={`min-h-24 rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
+                  className={`flex min-h-24 flex-col justify-start rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
                     off !== undefined ? "border-line bg-stone-100 text-muted" : !active ? "border-line bg-paper text-stone-300" : mine ? "border-brand bg-brand-soft" : full ? "border-line bg-white" : "border-amber-300 bg-amber-50/60"}`}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex w-full items-center justify-between">
                     <span className={`text-xs font-bold ${day === today ? "rounded bg-ink px-1 text-white" : ""}`}>{Number(day.slice(8))}</span>
                     {active && <span className={full ? "text-brand" : "text-amber-700"}>{slots.length}/5</span>}
                   </div>
                   {off !== undefined ? <div className="mt-1 truncate">{off || "쉬는 날"}</div> : active && (
-                    <ul className="mt-0.5 space-y-px">
+                    <ul className="mt-0.5 w-full space-y-px">
                       {ROLES.map((r) => {
                         const x = slots.find((s) => s.role === r.id);
-                        if (!x) return null;
+                        if (!x) return (
+                          <li key={r.id} className="flex items-center gap-1 whitespace-nowrap">
+                            <span className="w-5 shrink-0 text-[9px] text-muted">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
+                            <span className="text-stone-300">-</span>
+                          </li>
+                        );
                         return (
                           <li key={r.id} className={`flex items-center gap-1 whitespace-nowrap ${x.student_id === me ? "font-bold text-brand" : ""}`}>
                             <span className="w-5 shrink-0 text-[9px] text-muted">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
