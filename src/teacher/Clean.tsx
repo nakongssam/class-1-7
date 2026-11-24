@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CleanCalendar, countIn, inPeriod, isWeekday, leftovers, loadClean, nameOf, ROLES, roleLabel, thisMonth, type CleanData } from "../lib/clean";
+import { CleanCalendar, CleanCountGrid, countIn, inPeriod, isWeekday, leftovers, loadClean, nameOf, ROLES, roleLabel, thisMonth, type CleanData } from "../lib/clean";
 import { supabase } from "../lib/supabase";
 import { errMsg, formatDay, todayStr, toDateString } from "../lib/util";
 import { Loading, Section, useToast } from "../ui/kit";
@@ -113,6 +113,7 @@ export default function CleanTeacher() {
             )}
           </Section>
         )}
+        <Section title="학생별 청소 횟수"><CleanCountGrid d={d} today={today} /></Section>
       </div>
       <div className="space-y-4">
         <Section title="신청 기간">

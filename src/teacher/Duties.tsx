@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { downloadCsv, errMsg } from "../lib/util";
-import { Loading, Section, useToast } from "../ui/kit";
+import { Loading, Section, Tabs, useToast } from "../ui/kit";
+import { DutyBoard, type DutyRow } from "../lib/duties";
 
 type Row = { id: string; student_no: string; name: string; duty: string; service1: string; service2: string; hours: number };
 const FIELDS = ["duty", "service1", "service2", "hours"] as const;
@@ -10,6 +11,7 @@ export default function DutiesTeacher() {
   const toast = useToast();
   const [rows, setRows] = useState<Row[] | null>(null);
   const dirty = useRef(new Set<string>());
+  const [view, setView] = useState<"분담표 보기" | "편집">("분담표 보기");
   const load = useCallback(async () => {
     const [{ data: st }, { data: du }] = await Promise.all([
       supabase.from("students").select("id, student_no, name").eq("role", "student").eq("active", true).order("student_no"),
@@ -33,7 +35,11 @@ export default function DutiesTeacher() {
     setRows(rows.map((r, j) => (j === i ? { ...r, [k]: k === "hours" ? Number(v) || 0 : v } : r)));
   };
 
+  const board: DutyRow[] = rows.map((r) => ({ student_no: r.student_no, name: r.name, duty: r.duty, service1: r.service1, service2: r.service2, hours: r.hours }));
   return (
+    <>
+    <Tabs tabs={["분담표 보기", "편집"] as const} value={view} onChange={(v) => { setView(v); if (v === "분담표 보기") load(); }} />
+    {view === "분담표 보기" ? <Section><DutyBoard rows={board} showHours /></Section> :
     <Section title="🙋 1인 1역 · 봉사" right={
       <button className="btn-outline btn-sm" onClick={() => downloadCsv("1-7_역할분담표.csv", [["학번", "이름", "1인1역", "1학기 봉사", "2학기 봉사", "합계"], ...rows.map((r) => [r.student_no, r.name, r.duty, r.service1, r.service2, r.hours])])}>CSV</button>}>
       <p className="mb-3 text-xs text-muted">칸을 고치고 다른 곳을 누르면 저장돼요. 학생들은 우리 반 1인1역 목록과 자기 봉사 내역만 볼 수 있어요.</p>
@@ -55,6 +61,7 @@ export default function DutiesTeacher() {
           </tbody>
         </table>
       </div>
-    </Section>
+    </Section>}
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Me } from "../App";
-import { CleanCalendar, countIn, inPeriod, isWeekday, leftovers, loadClean, nameOf, ROLES, roleLabel, thisMonth, type CleanData, type CleanSlot } from "../lib/clean";
+import { CleanCalendar, CleanCountGrid, countIn, inPeriod, isWeekday, leftovers, loadClean, nameOf, ROLES, roleLabel, thisMonth, type CleanData, type CleanSlot } from "../lib/clean";
 import { supabase } from "../lib/supabase";
 import { errMsg, formatDay } from "../lib/util";
 import { Empty, Loading, Section, useToast } from "../ui/kit";
@@ -59,7 +59,7 @@ export default function CleanStudent({ me }: { me: Me }) {
 
   const selSlots = sel ? d.slots.filter((s) => s.day === sel) : [];
   const selOff = sel ? d.off.get(sel) : undefined;
-  const canSign = !!sel && inPeriod(d, sel) && isWeekday(sel) && selOff === undefined && sel > me.today && used < d.perStudent && !selSlots.some((s) => s.student_id === me.id);
+  const canSign = !!sel && inPeriod(d, sel) && isWeekday(sel) && selOff === undefined && sel >= me.today && used < d.perStudent && !selSlots.some((s) => s.student_id === me.id);
 
   return (
     <>
@@ -78,7 +78,7 @@ export default function CleanStudent({ me }: { me: Me }) {
         </Section>
       )}
 
-      <Section title="내 청소">
+      <Section title="내 청소" right={<span className="chip">지금까지 {mine.filter((s) => s.done_at).length}회 청소</span>}>
         {!mine.length ? <p className="text-sm text-muted">아직 신청하지 않았어요. 아래 달력에서 같이 하고 싶은 친구와 같은 날을 골라 신청해요.</p> : (
           <ul className="space-y-1.5 text-sm">
             {[...upcoming, ...mine.filter((s) => s.day <= me.today).reverse()].map((s) => (
@@ -117,11 +117,13 @@ export default function CleanStudent({ me }: { me: Me }) {
               })}
             </ul>
           )}
-          {inPeriod(d, sel) && selOff === undefined && !canSign && sel > me.today && used >= d.perStudent && !selSlots.some((s) => s.student_id === me.id) && (
+          {inPeriod(d, sel) && selOff === undefined && !canSign && sel >= me.today && used >= d.perStudent && !selSlots.some((s) => s.student_id === me.id) && (
             <p className="mt-2 text-xs text-muted">이번 기간 신청을 다 했어요. 날짜를 바꾸려면 '내 청소'에서 먼저 취소해요.</p>
           )}
         </Section>
       )}
+
+      <Section title="친구들 청소 횟수"><CleanCountGrid d={d} today={me.today} me={me.id} /></Section>
 
       {d.from && (
         <Section title={`아직 신청 안 한 친구 (${left.length})`}>

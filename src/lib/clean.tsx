@@ -111,4 +111,38 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
   );
 }
 
+/** 학생별 청소 횟수: 완료(체크함) / 지난 날인데 체크 안 함 / 예정 */
+export function cleanCounts(d: CleanData, today: string) {
+  return d.roster.filter((r) => !r.is_test).map((r) => {
+    const mine = d.slots.filter((s) => s.student_id === r.id);
+    return {
+      ...r,
+      done: mine.filter((s) => s.done_at).length,
+      missed: mine.filter((s) => !s.done_at && s.day < today).length,
+      planned: mine.filter((s) => !s.done_at && s.day >= today).length,
+    };
+  });
+}
+
+export function CleanCountGrid({ d, today, me }: { d: CleanData; today: string; me?: string }) {
+  const rows = cleanCounts(d, today);
+  return (
+    <div>
+      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {rows.map((r) => (
+          <li key={r.id} className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-sm ${r.id === me ? "border-brand bg-brand-soft" : "border-line bg-white"}`}>
+            <span className={r.id === me ? "font-bold text-brand" : ""}>{r.name}</span>
+            <span className="text-xs">
+              <b className={r.done ? "text-brand" : "text-muted"}>{r.done}회</b>
+              {r.planned > 0 && <span className="ml-1 text-muted">+{r.planned}</span>}
+              {r.missed > 0 && <span className="ml-1 text-rose">!{r.missed}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] text-muted">○회 = 청소하고 체크한 횟수 · +예정 · <span className="text-rose">!</span>지난 날인데 체크 안 함</p>
+    </div>
+  );
+}
+
 export const thisMonth = (today: string) => today.slice(0, 7);
