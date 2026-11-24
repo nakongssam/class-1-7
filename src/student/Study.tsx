@@ -60,7 +60,7 @@ function StampBoard({ count, target }: { count: number; target: number }) {
         내가 쓴 일지 <b className="text-brand">{count}건</b>
         {rounds > 0 ? <> · 🎉 <b>{rounds}번</b> 달성!</> : <> · 달성까지 <b>{target - cur}건</b> 남았어요</>}
       </p>
-      <p className="mt-1 text-xs text-muted">활동일지를 쓸 때마다 도장이 하나씩 찍혀요. {target}개 다 채워 볼까요? 💪</p>
+      <p className="mt-1 text-xs text-muted">도장 {target}개, 도전!</p>
     </div>
   );
 }
