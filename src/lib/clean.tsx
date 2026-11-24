@@ -85,20 +85,28 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
               const slots = d.slots.filter((s) => s.day === day);
               const mine = me && slots.some((s) => s.student_id === me);
               const full = slots.length >= ROLES.length;
-              const past = day < today;
-              const done = slots.filter((s) => s.done_at).length;
               return (
                 <button key={j} onClick={() => onPick(day)}
-                  className={`min-h-16 rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
+                  className={`min-h-24 rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
                     off !== undefined ? "border-line bg-stone-100 text-muted" : !active ? "border-line bg-paper text-stone-300" : mine ? "border-brand bg-brand-soft" : full ? "border-line bg-white" : "border-amber-300 bg-amber-50/60"}`}>
                   <div className="flex items-center justify-between">
                     <span className={`text-xs font-bold ${day === today ? "rounded bg-ink px-1 text-white" : ""}`}>{Number(day.slice(8))}</span>
                     {active && <span className={full ? "text-brand" : "text-amber-700"}>{slots.length}/5</span>}
                   </div>
                   {off !== undefined ? <div className="mt-1 truncate">{off || "쉬는 날"}</div> : active && (
-                    <div className="mt-0.5 hidden truncate sm:block">{slots.map((s) => nameOf(d, s.student_id)).join(" ")}</div>
+                    <ul className="mt-0.5 space-y-px">
+                      {ROLES.map((r) => {
+                        const x = slots.find((s) => s.role === r.id);
+                        if (!x) return null;
+                        return (
+                          <li key={r.id} className={`flex items-center gap-1 whitespace-nowrap ${x.student_id === me ? "font-bold text-brand" : ""}`}>
+                            <span className="w-5 shrink-0 text-[9px] text-muted">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
+                            <span className="truncate">{nameOf(d, x.student_id)}{x.done_at ? "✓" : ""}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   )}
-                  {active && past && slots.length > 0 && <div className="mt-0.5">✓{done}/{slots.length}</div>}
                   {mine && <div className="mt-0.5 font-bold text-brand">내 청소</div>}
                 </button>
               );
