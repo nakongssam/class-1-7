@@ -8,7 +8,7 @@ import { Empty, Section, Tabs, useToast } from "../ui/kit";
 type Activity = { day: string; student_id: string; students: { name: string } | null };
 
 // raw: 학생이 적은 그대로 (학생 화면·인쇄용). 아니면 AI가 정리한 강점으로 묶어서 센다 (교사 집계용)
-export function StrengthCloud({ letters, raw = true }: { letters: { strengths: string[] }[]; raw?: boolean }) {
+export function StrengthCloud({ letters, raw = true, onPick, picked }: { letters: { strengths: string[] }[]; raw?: boolean; onPick?: (w: string) => void; picked?: string }) {
   const map = useStrengthMap();
   const list = countStrengths(letters, raw ? EMPTY : map);
   const max = list[0]?.[1] ?? 1;
@@ -16,10 +16,18 @@ export function StrengthCloud({ letters, raw = true }: { letters: { strengths: s
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 py-4">
       {list.map(([w, n], i) => (
+        onPick ? (
+          <button key={w} onClick={() => onPick(w)} title={`${n}명 · 눌러서 편지 보기`}
+            className={`rounded-lg px-1 font-bold leading-tight hover:bg-bg ${picked === w ? "bg-warm ring-2 ring-amber-400" : ""}`}
+            style={{ fontSize: `${0.85 + (n / max) * 1.1}rem`, color: ["#2f6b4f", "#b45309", "#be185d", "#1d4ed8", "#6d28d9"][i % 5] }}>
+            {w}
+          </button>
+        ) : (
         <span key={w} className="font-bold leading-tight" title={`${n}명`}
           style={{ fontSize: `${0.85 + (n / max) * 1.1}rem`, color: ["#2f6b4f", "#b45309", "#be185d", "#1d4ed8", "#6d28d9"][i % 5] }}>
           {w}
         </span>
+        )
       ))}
     </div>
   );

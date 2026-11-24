@@ -360,20 +360,99 @@ function Reveal({ d, refresh }: { d: D; refresh: () => void }) {
           </ul>
         </Section>
         {cur ? (
-          <div className="space-y-3">
-            <Section title={`${cur.role === "teacher" ? "선생님" : cur.name}이(가) 받은 편지 ${recv(cur.id).length}통`} right={<div className="flex flex-wrap gap-2">
-              <button className={cur.relay_reviewed_at ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => upd([cur.id], { relay_reviewed_at: cur.relay_reviewed_at ? null : new Date().toISOString() }, cur.relay_reviewed_at ? "검토 완료를 해제했어요." : "검토 완료로 표시했어요.")}>{cur.relay_reviewed_at ? "✓ 검토 완료" : "검토 완료 표시"}</button>
-              <button className={cur.revealed ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => confirm(cur.revealed ? "이 학생의 결과를 다시 비공개로 바꿀까요?" : "이 학생에게 결과를 지금 공개할까요?") && upd([cur.id], { revealed: !cur.revealed }, cur.revealed ? "비공개로 바꿨어요." : "공개했어요.")}>{cur.revealed ? "공개 중 · 닫기" : "이 학생만 공개"}</button>
-              <button className="btn-outline btn-sm" onClick={() => setPrintId(cur.id)}>🖨 인쇄</button>
-            </div>}>
-              <p className="text-xs text-muted">학생에게 보일 모습 (결과에서 제외한 편지는 빠져요)</p>
-              <StrengthCloud letters={recv(cur.id).filter((m) => m.status === "approved")} />
-            </Section>
-            {recv(cur.id).length === 0 ? <Section><Empty>받은 편지가 없어요.</Empty></Section> :
-              recv(cur.id).map((m) => <ReviewItem key={m.id} m={m} from={byId.get(m.author_student_id)?.name ?? ""} to={cur.name} refresh={refresh} />)}
-          </div>
+          <StudentReview key={cur.id} cur={cur} msgs={recv(cur.id)} byId={byId} refresh={refresh}
+            onReviewed={() => upd([cur.id], { relay_reviewed_at: cur.relay_reviewed_at ? null : new Date().toISOString() }, cur.relay_reviewed_at ? "검토 완료를 해제했어요." : "검토 완료로 표시했어요.")}
+            onReveal={() => confirm(cur.revealed ? "이 학생의 결과를 다시 비공개로 바꿀까요?" : "이 학생에게 결과를 지금 공개할까요?") && upd([cur.id], { revealed: !cur.revealed }, cur.revealed ? "비공개로 바꿨어요." : "공개했어요.")}
+            onPrint={() => setPrintId(cur.id)} />
         ) : <Section><Empty>왼쪽에서 학생을 골라 받은 편지를 검토하세요.</Empty></Section>}
       </div>
+    </div>
+  );
+}
+
+const norm = (w: string) => w.trim().replace(/\s+/g, " ");
+
+function StudentReview({ cur, msgs, byId, refresh, onReviewed, onReveal, onPrint }: {
+  cur: Student; msgs: Msg[]; byId: Map<string, Student>; refresh: () => void; onReviewed: () => void; onReveal: () => void; onPrint: () => void;
+}) {
+  const [view, setView] = useState<"preview" | "list">("preview");
+  const [word, setWord] = useState("");
+  const [openMsg, setOpenMsg] = useState<string | null>(null);
+  const shown = msgs.filter((m) => m.status === "approved");
+  const hiddenN = msgs.length - shown.length;
+  const name = cur.role === "teacher" ? "선생님" : cur.name;
+  const author = (m: Msg) => byId.get(m.author_student_id)?.name ?? "";
+  const withWord = word ? msgs.filter((m) => m.strengths.some((r) => norm(r) === word)) : [];
+  const listSorted = [...msgs].sort((a, b) => author(a).localeCompare(author(b), "ko"));
+
+  return (
+    <div className="space-y-3">
+      <Section title={`${name}이(가) 받은 편지 ${msgs.length}통`} right={<div className="flex flex-wrap gap-2">
+        <button className={cur.relay_reviewed_at ? "btn btn-sm" : "btn-outline btn-sm"} onClick={onReviewed}>{cur.relay_reviewed_at ? "✓ 검토 완료" : "검토 완료 표시"}</button>
+        <button className={cur.revealed ? "btn btn-sm" : "btn-outline btn-sm"} onClick={onReveal}>{cur.revealed ? "공개 중 · 닫기" : "이 학생만 공개"}</button>
+        <button className="btn-outline btn-sm" onClick={onPrint}>🖨 인쇄</button>
+      </div>}>
+        <div className="flex gap-1 rounded-full bg-bg p-1 text-sm font-semibold">
+          <button className={`flex-1 rounded-full py-1.5 ${view === "preview" ? "bg-ink text-white" : "text-muted"}`} onClick={() => setView("preview")}>📄 인쇄·학생 화면 미리보기</button>
+          <button className={`flex-1 rounded-full py-1.5 ${view === "list" ? "bg-ink text-white" : "text-muted"}`} onClick={() => { setView("list"); setWord(""); }}>👥 누가 어떻게 썼는지 목록</button>
+        </div>
+      </Section>
+
+      {view === "preview" && (
+        <>
+          <section className="card">
+            <h3 className="text-center text-xl font-extrabold">💌 {name}에게</h3>
+            <p className="mt-1 text-center text-xs text-muted">강점 단어나 편지를 누르면 쓴 사람과 수정·삭제 버튼이 보여요.{hiddenN > 0 && ` · 결과에서 제외한 편지 ${hiddenN}통은 빠져 있어요.`}</p>
+            <StrengthCloud letters={shown} onPick={(w) => { setWord(word === w ? "" : w); setOpenMsg(null); }} picked={word} />
+            {word && (
+              <div className="mb-4 space-y-2 rounded-xl bg-warm/60 p-3">
+                <div className="flex items-center justify-between text-sm"><b>‘{word}’를 적은 편지 {withWord.length}통</b><button className="text-xs underline" onClick={() => setWord("")}>닫기</button></div>
+                {withWord.map((m) => <ReviewItem key={m.id} m={m} from={author(m)} to={name} refresh={refresh} />)}
+              </div>
+            )}
+            <div className="columns-1 gap-3 sm:columns-2">
+              {shown.map((m) => openMsg === m.id ? (
+                <div key={m.id} className="mb-3 break-inside-avoid">
+                  <ReviewItem m={m} from={author(m)} to={name} refresh={refresh} />
+                  <button className="mt-1 text-xs text-muted underline" onClick={() => setOpenMsg(null)}>접기</button>
+                </div>
+              ) : (
+                <button key={m.id} onClick={() => setOpenMsg(m.id)}
+                  className={`mb-3 block w-full break-inside-avoid rounded-lg border p-3 text-left text-sm hover:border-brand ${m.ai_flagged && !m.teacher_edited ? "border-rose/50 bg-rose-50/40" : "border-line bg-white"}`}>
+                  {m.strengths.length > 0 && <span className="mb-1.5 flex flex-wrap gap-1">{m.strengths.map((t, j) => <span key={j} className="chip">{t}</span>)}</span>}
+                  <span className="block whitespace-pre-wrap">{m.body}</span>
+                  {m.ai_flagged && !m.teacher_edited && <span className="mt-1.5 block text-xs text-rose">⚠ AI 주의</span>}
+                </button>
+              ))}
+            </div>
+            {!shown.length && <Empty>학생에게 보일 편지가 없어요.</Empty>}
+          </section>
+        </>
+      )}
+
+      {view === "list" && (
+        msgs.length === 0 ? <Section><Empty>받은 편지가 없어요.</Empty></Section> : (
+          <>
+            <Section>
+              <div className="overflow-x-auto">
+                <table className="table min-w-[560px]">
+                  <thead><tr><th>쓴 사람</th><th>강점</th><th>편지</th><th>상태</th></tr></thead>
+                  <tbody>{listSorted.map((m) => (
+                    <tr key={m.id} className="cursor-pointer hover:bg-bg" onClick={() => document.getElementById(`msg-${m.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+                      <td className="whitespace-nowrap font-semibold">{author(m)}</td>
+                      <td className="text-xs">{m.strengths.join(" / ")}</td>
+                      <td className="max-w-80 truncate">{m.body}</td>
+                      <td className="whitespace-nowrap space-x-1">{m.ai_flagged && !m.teacher_edited && <span className="chip-red">주의</span>}{m.status === "hidden" && <span className="chip-gray">제외</span>}{m.teacher_edited && <span className="chip-gray">확인</span>}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-xs text-muted">줄을 누르면 아래 해당 편지로 이동해요.</p>
+            </Section>
+            {listSorted.map((m) => <div key={m.id} id={`msg-${m.id}`}><ReviewItem m={m} from={author(m)} to={name} refresh={refresh} /></div>)}
+          </>
+        )
+      )}
     </div>
   );
 }
