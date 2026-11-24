@@ -73,6 +73,7 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
   const [duty, setDuty] = useState<{ duty: string; service1: string; service2: string; hours: number } | null>(null);
   const [allDuties, setAllDuties] = useState<DutyRow[] | null>(null);
   const [showDuties, setShowDuties] = useState(false);
+  const [showChecks, setShowChecks] = useState(false);
   const [dutyChecks, setDutyChecks] = useState<Map<string, string>>(new Map());
   const rateDuty = async (key: string, rating: string) => {
     const { error } = await supabase.from("duty_checks").upsert({ student_id: me.id, item_key: key, rating, checked_at: new Date().toISOString() });
@@ -147,15 +148,31 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
         ) : <p className="mt-1 font-semibold">평일에 공개돼요</p>}
       </button>
 
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => go("attendance")} className="card text-left">
+          <p className="text-2xl">🌱</p>
+          <p className="mt-2 font-bold">출결 보고</p>
+          <p className="text-xs text-muted">지각·조퇴·결과·결석</p>
+        </button>
+        <button onClick={() => go("study")} className="card relative text-left">
+          <p className="text-2xl">📚</p>
+          <p className="mt-2 font-bold">스터디그룹</p>
+          <p className="text-xs text-muted">{invites ? `초대 ${invites}건` : "활동 일지 쓰기"}</p>
+          {invites > 0 && <span className="absolute right-4 top-4 size-2.5 rounded-full bg-rose" />}
+        </button>
+      </div>
+
       <section className="card">
         <p className="text-sm text-muted">🙋 내 역할</p>
-        <p className="mt-1 text-xl font-extrabold text-brand">{duty?.duty || "1인 1역 없음"}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+        <p className="text-xl font-extrabold text-brand">{duty?.duty || "1인 1역 없음"}</p>
         {nextClean && (
-          <p className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${nextClean.day === me.today ? "bg-amber-100 text-amber-800" : "bg-stone-100 text-stone-700"}`}>
+          <p className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${nextClean.day === me.today ? "bg-amber-100 text-amber-800" : "bg-stone-100 text-stone-700"}`}>
             🧹 {nextClean.day === me.today ? "오늘 청소 당번" : `${formatDay(nextClean.day)} 청소 당번`} · {roleLabel(nextClean.role)}{nextClean.done_at ? " ✓" : ""}
           </p>
         )}
-        {duty && dutyItems(duty).length > 0 && (
+        </div>
+        {showChecks && duty && dutyItems(duty).length > 0 && (
           <div className="mt-3 border-t border-line pt-3">
             <p className="mb-2 text-xs text-muted">항목마다 얼마나 열심히 했는지 스스로 체크해요. (다시 누르면 바꿀 수 있어요)</p>
             <ul className="space-y-2">
@@ -173,7 +190,13 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
             </ul>
           </div>
         )}
-        <button className="btn-outline btn-sm mt-3" onClick={openDuties}>{showDuties ? "닫기" : "우리 반 1인 1역 전체 보기"}</button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {duty && dutyItems(duty).length > 0 && (() => {
+            const items = dutyItems(duty); const n = items.filter((it) => dutyChecks.has(it.key)).length;
+            return <button className={n < items.length && !showChecks ? "btn btn-sm" : "btn-outline btn-sm"} onClick={() => setShowChecks((v) => !v)}>{showChecks ? "체크 닫기" : `역할 자기 체크 ${n}/${items.length}`}</button>;
+          })()}
+          <button className="btn-outline btn-sm" onClick={openDuties}>{showDuties ? "전체 닫기" : "우리 반 1인 1역 보기"}</button>
+        </div>
         {showDuties && <div className="mt-4"><DutyBoard rows={allDuties ?? []} showHours={false} highlight={me.name} /></div>}
       </section>
 
@@ -191,19 +214,6 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
         ) : <p className="mt-1 font-semibold">오늘은 당번이 없어요 · 달력 보기 →</p>}
       </button>
 
-      <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => go("attendance")} className="card text-left">
-          <p className="text-2xl">🌱</p>
-          <p className="mt-2 font-bold">출결 보고</p>
-          <p className="text-xs text-muted">지각·조퇴·결과·결석</p>
-        </button>
-        <button onClick={() => go("study")} className="card relative text-left">
-          <p className="text-2xl">📚</p>
-          <p className="mt-2 font-bold">스터디그룹</p>
-          <p className="text-xs text-muted">{invites ? `초대 ${invites}건` : "활동 일지 쓰기"}</p>
-          {invites > 0 && <span className="absolute right-4 top-4 size-2.5 rounded-full bg-rose" />}
-        </button>
-      </div>
 
       <section className="card">
         <button className="flex w-full items-center justify-between text-left" onClick={() => setShowPin((v) => !v)}>
