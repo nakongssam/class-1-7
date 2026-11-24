@@ -113,7 +113,7 @@ export default function CleanTeacher() {
             )}
           </Section>
         )}
-        <Section title="학생별 청소 횟수"><CleanCountGrid d={d} today={today} /></Section>
+        <Section title="개인별 청소 횟수"><CleanCountGrid d={d} today={today} /></Section>
       </div>
       <div className="space-y-4">
         <Section title="신청 기간">

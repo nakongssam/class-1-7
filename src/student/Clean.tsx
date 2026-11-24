@@ -123,7 +123,7 @@ export default function CleanStudent({ me }: { me: Me }) {
         </Section>
       )}
 
-      <Section title="친구들 청소 횟수"><CleanCountGrid d={d} today={me.today} me={me.id} /></Section>
+      <Section title="개인별 청소 횟수"><CleanCountGrid d={d} today={me.today} me={me.id} /></Section>
 
       {d.from && (
         <Section title={`아직 신청 안 한 친구 (${left.length})`}>
