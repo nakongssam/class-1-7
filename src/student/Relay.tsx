@@ -35,6 +35,7 @@ export default function RelayStudent({ me }: { me: Me }) {
   const [inbox, setInbox] = useState<{ day: string; strengths: string[]; body: string }[]>([]);
 
   const load = useCallback(async () => {
+    await supabase.rpc("relay_auto_publish_today"); // 평일이면 오늘 주인공 자동 공개 (이미 있으면 그대로)
     const [{ data: t }, { data: a }, { data: m }, { data: ib }] = await Promise.all([
       supabase.from("relay_schedule").select("day, student_id, students(name)").eq("day", me.today).eq("published", true).maybeSingle(),
       supabase.from("relay_hero_activities").select("day, student_id, students(name)").lte("day", me.today).order("day", { ascending: false }),

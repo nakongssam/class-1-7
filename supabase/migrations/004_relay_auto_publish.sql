@@ -1,0 +1,3 @@
+-- 평일(월~금) 0시에 오늘의 주인공 자동 공개 (pg_cron 'relay-auto-publish', UTC 일~목 15:01)
+-- 미리 정해 둔 학생 우선, 없으면 아직 주인공을 안 한 학생 중 랜덤. 앱을 열 때도 같은 함수를 불러 빠짐없이 공개.
+-- 함수 본문은 Supabase 마이그레이션 004_relay_auto_publish 참고: public.relay_auto_publish_today()

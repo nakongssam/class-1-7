@@ -69,6 +69,7 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
 
   useEffect(() => {
     (async () => {
+      await supabase.rpc("relay_auto_publish_today");
       const { data: sch } = await supabase.from("relay_schedule").select("student_id, students(name)").eq("day", me.today).eq("published", true).maybeSingle();
       if (sch) {
         const { data: mine } = await supabase.from("relay_messages").select("id").eq("day", me.today).eq("target_student_id", sch.student_id).eq("author_student_id", me.id).maybeSingle();

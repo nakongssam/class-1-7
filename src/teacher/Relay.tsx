@@ -19,6 +19,7 @@ export default function RelayTeacher({ me }: { me: Me }) {
   const [sub, setSub] = useState<(typeof SUB)[number]>("현황");
   const [d, setD] = useState<D | null>(null);
   const load = useCallback(async () => {
+    await supabase.rpc("relay_auto_publish_today");
     const msgs: Msg[] = [];
     for (let from = 0; ; from += 1000) {
       const { data, error } = await supabase.from("relay_messages").select("*").order("created_at", { ascending: false }).range(from, from + 999);
@@ -245,7 +246,7 @@ function Upcoming({ d, today, byId, label, refresh }: { d: D; today: string; byI
   };
   return (
     <Section title="다음 주인공 미리 정하기">
-      <p className="-mt-1 mb-3 text-sm text-muted">미리 뽑아 둘 수 있어요. 편지 쓰기는 그날이 되어야 열려요.</p>
+      <p className="-mt-1 mb-3 text-sm text-muted">평일(월~금)에는 0시가 되면 자동으로 공개돼요. 여기서 정해 둔 학생이 있으면 그 학생이, 없으면 아직 주인공을 안 한 학생 중 랜덤으로 뽑혀요. 편지 쓰기는 그날이 되어야 열려요.</p>
       <ul className="space-y-2">
         {days.map((day) => {
           const p = planned.get(day);
