@@ -391,7 +391,12 @@ function PrintView({ d, only, onClose }: { d: D; only: string | null; onClose: (
             <h2 className="text-center text-2xl font-extrabold">💌 {s.name}에게</h2>
             <StrengthCloud letters={letters} />
             <div className="columns-1 gap-3 sm:columns-2">
-              {letters.map((m) => <p key={m.id} className="mb-3 break-inside-avoid rounded-lg border border-line p-3 text-sm whitespace-pre-wrap">{m.body}</p>)}
+              {letters.map((m) => (
+                <div key={m.id} className="mb-3 break-inside-avoid rounded-lg border border-line p-3 text-sm">
+                  {m.strengths.length > 0 && <div className="mb-1.5 flex flex-wrap gap-1">{m.strengths.map((t, j) => <span key={j} className="chip">{t}</span>)}</div>}
+                  <p className="whitespace-pre-wrap">{m.body}</p>
+                </div>
+              ))}
             </div>
           </article>
         );

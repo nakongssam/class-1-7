@@ -7,9 +7,10 @@ import { Empty, Section, Tabs, useToast } from "../ui/kit";
 
 type Activity = { day: string; student_id: string; students: { name: string } | null };
 
-export function StrengthCloud({ letters }: { letters: { strengths: string[] }[] }) {
+// raw: 학생이 적은 그대로 (학생 화면·인쇄용). 아니면 AI가 정리한 강점으로 묶어서 센다 (교사 집계용)
+export function StrengthCloud({ letters, raw = true }: { letters: { strengths: string[] }[]; raw?: boolean }) {
   const map = useStrengthMap();
-  const list = countStrengths(letters, map);
+  const list = countStrengths(letters, raw ? EMPTY : map);
   const max = list[0]?.[1] ?? 1;
   if (!list.length) return null;
   return (
@@ -24,6 +25,7 @@ export function StrengthCloud({ letters }: { letters: { strengths: string[] }[] 
   );
 }
 
+const EMPTY = new Map<string, string[]>();
 const SUB = ["✉️ 편지 쓰기", "💌 내 결과"] as const;
 
 export default function RelayStudent({ me }: { me: Me }) {
@@ -102,7 +104,12 @@ export default function RelayStudent({ me }: { me: Me }) {
             <>
               <StrengthCloud letters={inbox} />
               <ul className="mt-2 space-y-3 border-t border-line pt-4">
-                {inbox.map((m, i) => <li key={i} className="rounded-xl border border-line bg-white p-4 whitespace-pre-wrap leading-relaxed">{m.body}</li>)}
+                {inbox.map((m, i) => (
+                  <li key={i} className="rounded-xl border border-line bg-white p-4">
+                    {m.strengths.length > 0 && <div className="mb-2 flex flex-wrap gap-1">{m.strengths.map((t, j) => <span key={j} className="chip">{t}</span>)}</div>}
+                    <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
+                  </li>
+                ))}
               </ul>
             </>
           ) : <Empty>아직 열린 편지가 없어요. 선생님이 공개하면 여기에서 볼 수 있어요.</Empty>}
