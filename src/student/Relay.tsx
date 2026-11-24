@@ -114,7 +114,6 @@ export default function RelayStudent({ me }: { me: Me }) {
               <ul className="mt-2 space-y-3 border-t border-line pt-4">
                 {inbox.map((m, i) => (
                   <li key={i} className="rounded-xl border border-line bg-white p-4">
-                    {m.strengths.length > 0 && <div className="mb-2 flex flex-wrap gap-1">{m.strengths.map((t, j) => <span key={j} className="chip">{t}</span>)}</div>}
                     <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
                   </li>
                 ))}

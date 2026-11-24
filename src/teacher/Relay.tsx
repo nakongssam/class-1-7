@@ -419,7 +419,6 @@ function StudentReview({ cur, msgs, byId, refresh, onReviewed, onReveal, onPrint
               ) : (
                 <button key={m.id} onClick={() => setOpenMsg(m.id)}
                   className={`mb-3 block w-full break-inside-avoid rounded-lg border p-3 text-left text-sm hover:border-brand ${m.ai_flagged && !m.teacher_edited ? "border-rose/50 bg-rose-50/40" : "border-line bg-white"}`}>
-                  {m.strengths.length > 0 && <span className="mb-1.5 flex flex-wrap gap-1">{m.strengths.map((t, j) => <span key={j} className="chip">{t}</span>)}</span>}
                   <span className="block whitespace-pre-wrap">{m.body}</span>
                   {m.ai_flagged && !m.teacher_edited && <span className="mt-1.5 block text-xs text-rose">⚠ AI 주의</span>}
                 </button>
@@ -472,7 +471,6 @@ function PrintView({ d, only, onClose }: { d: D; only: string | null; onClose: (
             <div className="columns-1 gap-3 sm:columns-2">
               {letters.map((m) => (
                 <div key={m.id} className="mb-3 break-inside-avoid rounded-lg border border-line p-3 text-sm">
-                  {m.strengths.length > 0 && <div className="mb-1.5 flex flex-wrap gap-1">{m.strengths.map((t, j) => <span key={j} className="chip">{t}</span>)}</div>}
                   <p className="whitespace-pre-wrap">{m.body}</p>
                 </div>
               ))}
