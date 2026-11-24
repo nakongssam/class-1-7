@@ -126,22 +126,25 @@ export function cleanCounts(d: CleanData, today: string) {
 
 export function CleanCountGrid({ d, today, me }: { d: CleanData; today: string; me?: string }) {
   const rows = cleanCounts(d, today);
-  return (
-    <div>
-      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        {rows.map((r) => (
-          <li key={r.id} className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-sm ${r.id === me ? "border-brand bg-brand-soft" : "border-line bg-white"}`}>
-            <span className={r.id === me ? "font-bold text-brand" : ""}>{r.name}</span>
-            <span className="text-xs">
-              <b className={r.done ? "text-brand" : "text-muted"}>{r.done}회</b>
-              {r.planned > 0 && <span className="ml-1 text-muted">+{r.planned}</span>}
-              {r.missed > 0 && <span className="ml-1 text-rose">!{r.missed}</span>}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-2 text-[11px] text-muted">○회 = 청소하고 체크한 횟수 · +예정 · <span className="text-rose">!</span>지난 날인데 체크 안 함</p>
+  const stat = (label: string, n: number, color: string) => (
+    <div className="flex-1 text-center">
+      <p className="text-[10px] text-muted">{label}</p>
+      <p className={`text-sm font-bold ${n ? color : "text-stone-300"}`}>{n}회</p>
     </div>
+  );
+  return (
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {rows.map((r) => (
+        <li key={r.id} className={`rounded-xl border px-2.5 py-2 ${r.id === me ? "border-brand bg-brand-soft" : "border-line bg-white"}`}>
+          <p className={`text-sm font-semibold ${r.id === me ? "text-brand" : ""}`}>{r.name}</p>
+          <div className="mt-1 flex divide-x divide-line">
+            {stat("예약", r.planned, "text-stone-700")}
+            {stat("청소함", r.done, "text-brand")}
+            {stat("안 함", r.missed, "text-rose")}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
