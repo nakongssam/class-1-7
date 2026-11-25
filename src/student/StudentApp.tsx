@@ -36,7 +36,7 @@ export default function StudentApp({ me }: { me: Me }) {
   const [tab, setTab] = useHashTab();
   return (
     <div className="min-h-dvh pb-24">
-      <header className="no-print sticky top-0 z-20 border-b border-ink bg-white/90 backdrop-blur">
+      <header className="no-print sticky top-0 z-20 border-b border-ink bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           <button onClick={() => setTab("home")} className="flex items-center gap-2">
             <span className="grid size-8 place-items-center rounded-full bg-ink font-display text-xs text-white">1-7</span>
