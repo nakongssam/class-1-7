@@ -10,7 +10,7 @@ export const GOAL_TYPES = [
 
 export type CareerCard = {
   student_id: string; goal_type: "job" | "major" | "explore"; goal: string; field: string;
-  past: string; present: string; subjects: string; future: string; answers: Record<string, string>; published: boolean; published_at: string | null; updated_at: string;
+  past: string; present: string; subjects: string; future: string; answers: Record<string, string>; hidden: boolean; published: boolean; published_at: string | null; updated_at: string;
 };
 export type Reaction = { card_id: string; reactor_id: string; emoji: string };
 export type Person = { id: string; name: string; student_no: string; is_test: boolean };
@@ -38,13 +38,14 @@ export function composeSection(sec: (typeof SECTIONS)[number], answers: Record<s
 }
 
 export async function loadCareer() {
-  const [{ data: cards, error }, { data: reactions }, { data: people }] = await Promise.all([
+  const [{ data: cards, error }, { data: reactions }, { data: people }, { data: cs }] = await Promise.all([
     supabase.from("career_cards").select("*"),
     supabase.from("career_reactions").select("card_id, reactor_id, emoji"),
     supabase.rpc("clean_roster"),
+    supabase.from("class_settings").select("career_open").maybeSingle(),
   ]);
   if (error) throw error;
-  return { cards: (cards ?? []) as CareerCard[], reactions: (reactions ?? []) as Reaction[], people: (people ?? []) as Person[] };
+  return { open: !!cs?.career_open, cards: (cards ?? []) as CareerCard[], reactions: (reactions ?? []) as Reaction[], people: (people ?? []) as Person[] };
 }
 
 export const goalLabel = (c: Pick<CareerCard, "goal_type" | "goal">) =>

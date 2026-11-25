@@ -7,7 +7,7 @@ import { Empty, Loading, Section, Tabs, useToast } from "../ui/kit";
 
 type Data = Awaited<ReturnType<typeof loadCareer>>;
 const SUB = ["내 진로 카드", "반 진로 갤러리"] as const;
-const blank = (id: string): CareerCard => ({ student_id: id, goal_type: "job", goal: "", field: "", past: "", present: "", subjects: "", future: "", answers: {}, published: false, published_at: null, updated_at: "" });
+const blank = (id: string): CareerCard => ({ student_id: id, goal_type: "job", goal: "", field: "", past: "", present: "", subjects: "", future: "", answers: {}, hidden: false, published: false, published_at: null, updated_at: "" });
 
 export function Reactions({ d, cardId, me, onChange }: { d: Data; cardId: string; me?: string; onChange?: () => void }) {
   const toast = useToast();
@@ -59,28 +59,23 @@ export default function CareerStudent({ me }: { me: Me }) {
   const showForm = editing || !saved;
   const nameOf = (id: string) => d.people.find((p) => p.id === id)?.name ?? "";
 
-  const save = async (publish?: boolean) => {
+  const save = async () => {
     if (!f.goal.trim() && f.goal_type !== "explore") return toast("희망 진로나 학과를 적어 주세요.", "err");
     const answers = f.answers ?? {};
     const composed = Object.fromEntries(SECTIONS.map((sec) => [sec.key, composeSection(sec, answers, f.goal_type)])) as Record<"past" | "present" | "future", string>;
-    if (publish && !composed.past && !composed.present && !composed.future) return toast("시작·지금·미래 중 하나는 써야 공개할 수 있어요.", "err");
     setBusy(true);
-    const pub = publish ?? f.published;
-    const row = { ...f, ...composed, answers, goal: f.goal.trim(), published: pub, published_at: pub ? (f.published_at ?? new Date().toISOString()) : null, updated_at: new Date().toISOString() };
+    const { hidden: _h, published: _p, published_at: _pa, ...rest } = f;
+    const row = { ...rest, ...composed, answers, goal: f.goal.trim(), updated_at: new Date().toISOString() };
     const { error } = await supabase.from("career_cards").upsert(row);
     setBusy(false);
     if (error) return toast(errMsg(error), "err");
-    setF(row); setEditing(false);
-    toast(publish ? "반 친구들에게 공개했어요! 🎉" : pub ? "저장했어요. (공개 중)" : "저장했어요. 아직 나만 볼 수 있어요.");
+    setF({ ...f, ...row }); setEditing(false);
+    toast("저장했어요.");
     load();
   };
-  const unpublish = async () => {
-    const { error } = await supabase.from("career_cards").update({ published: false, published_at: null }).eq("student_id", me.id);
-    if (error) return toast(errMsg(error), "err");
-    setF({ ...f, published: false, published_at: null }); toast("비공개로 바꿨어요."); load();
-  };
+  const visible = (c: CareerCard) => d.open && !c.hidden;
 
-  const published = d.cards.filter((c) => c.published && (c.student_id === me.id || !d.people.find((p) => p.id === c.student_id)?.is_test));
+  const published = d.cards.filter((c) => visible(c) && (c.student_id === me.id || !d.people.find((p) => p.id === c.student_id)?.is_test));
   const shown = published.filter((c) => filter === "전체" || c.field === filter || (filter === "탐색 중" && c.goal_type === "explore"))
     .sort((a, b) => (nameOf(a.student_id) > nameOf(b.student_id) ? 1 : -1));
   const counts = (k: string) => published.filter((c) => c.field === k || (k === "탐색 중" && c.goal_type === "explore")).length;
@@ -88,7 +83,7 @@ export default function CareerStudent({ me }: { me: Me }) {
   return (
     <>
       <h1 className="text-xl font-extrabold">🎯 진로</h1>
-      <Tabs tabs={SUB} value={sub} onChange={setSub} badges={{ "반 진로 갤러리": published.length }} />
+      <Tabs tabs={SUB} value={sub} onChange={setSub} badges={{ "반 진로 갤러리": d.open ? published.length : 0 }} />
 
       {sub === "내 진로 카드" && (showForm ? (
         <Section title={saved ? "진로 카드 고치기" : "나의 진로 카드 쓰기"}>
@@ -125,23 +120,20 @@ export default function CareerStudent({ me }: { me: Me }) {
               </fieldset>
             ))}
             <div className="flex flex-wrap gap-2">
-              <button className="btn-outline" disabled={busy} onClick={() => save()}>저장 (나만 보기)</button>
-              {!f.published && <button className="btn" disabled={busy} onClick={() => save(true)}>저장하고 반에 공개</button>}
-              {f.published && <button className="btn" disabled={busy} onClick={() => save()}>저장 (공개 중)</button>}
+              <button className="btn" disabled={busy} onClick={() => save()}>저장</button>
               {saved && <button className="btn-outline" onClick={() => { setF(saved); setEditing(false); }}>취소</button>}
             </div>
           </div>
         </Section>
       ) : (
         <>
-          <div className={`card flex flex-wrap items-center gap-2 ${saved.published ? "border-brand bg-brand-soft" : "border-amber-300 bg-amber-50"}`}>
-            <span className="font-semibold">{saved.published ? "🌍 반 친구들에게 공개 중" : "🔒 아직 나만 볼 수 있어요"}</span>
+          <div className={`card flex flex-wrap items-center gap-2 ${visible(saved) ? "border-brand bg-brand-soft" : "border-amber-300 bg-amber-50"}`}>
+            <span className="text-sm font-semibold">{visible(saved) ? "🌍 반 친구들에게 공개 중" : "🔒 지금은 나와 선생님만 볼 수 있어요. 선생님이 공개하면 반 친구들도 볼 수 있어요."}</span>
             <div className="ml-auto flex gap-2">
               <button className="btn-outline btn-sm" onClick={() => setEditing(true)}>고치기</button>
-              {saved.published ? <button className="btn-outline btn-sm" onClick={unpublish}>비공개로</button> : <button className="btn btn-sm" onClick={() => save(true)}>반에 공개</button>}
             </div>
           </div>
-          <CareerView c={saved} name={me.name}>{saved.published && <Reactions d={d} cardId={me.id} />}</CareerView>
+          <CareerView c={saved} name={me.name}>{visible(saved) && <Reactions d={d} cardId={me.id} />}</CareerView>
         </>
       ))}
 
@@ -154,7 +146,7 @@ export default function CareerStudent({ me }: { me: Me }) {
               return <button key={x} onClick={() => setFilter(x)} className={`shrink-0 ${filter === x ? "btn btn-sm" : "btn-outline btn-sm"}`}>{x} {n}</button>;
             })}
           </div>
-          {!shown.length ? <Section><Empty>아직 공개한 친구가 없어요. 내 진로 카드를 먼저 공개해 볼까요?</Empty></Section> : (
+          {!d.open ? <Section><Empty>🔒 선생님이 공개하면 반 친구들의 진로 카드를 볼 수 있어요. 먼저 내 진로 카드를 써 두세요!</Empty></Section> : !shown.length ? <Section><Empty>아직 진로 카드가 없어요.</Empty></Section> : (
             <div className="space-y-3">
               {shown.map((c) => (
                 <CareerView key={c.student_id} c={c} name={nameOf(c.student_id)}>

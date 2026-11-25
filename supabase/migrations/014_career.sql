@@ -5,3 +5,4 @@
 -- career_drafts(student_id, content, note) 교사 전용 / ai 함수 career_draft
 -- clean_signup: 쉬는 날 신청은 횟수에서 제외
 -- 015: career_cards.answers jsonb (세부 질문별 답), 선택과목 칸 화면에서 제거
+-- 016: 교사만 공개 설정 — class_settings.career_open, career_cards.hidden, career_guard 트리거(학생은 hidden/published 변경 불가), 읽기 = 본인·교사·(공개 중 & 숨김 아님)

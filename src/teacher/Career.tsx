@@ -20,8 +20,18 @@ export default function CareerTeacher() {
   const people = d.people;
   const card = (id: string) => d.cards.find((c) => c.student_id === id);
   const realPeople = people.filter((p) => !p.is_test);
-  const nPub = realPeople.filter((p) => card(p.id)?.published).length;
-  const nDraft = realPeople.filter((p) => card(p.id) && !card(p.id)!.published).length;
+  const nDone = realPeople.filter((p) => card(p.id)).length;
+  const toggleOpen = async () => {
+    if (!window.confirm(d.open ? "진로 갤러리를 닫을까요? 학생들은 자기 카드만 보게 돼요." : `작성한 학생 ${nDone}명의 진로 카드를 반 전체에 공개할까요?\n(숨김으로 둔 카드는 빼고 공개돼요)`)) return;
+    const { error } = await supabase.from("class_settings").update({ career_open: !d.open }).eq("id", 1);
+    if (error) return toast(errMsg(error), "err");
+    toast(d.open ? "갤러리를 닫았어요." : "반 전체에 공개했어요! 🎉"); load();
+  };
+  const toggleHidden = async (id: string, hidden: boolean) => {
+    const { error } = await supabase.from("career_cards").update({ hidden }).eq("student_id", id);
+    if (error) return toast(errMsg(error), "err");
+    load();
+  };
   const id = sel || people[0]?.id || "";
   const c = card(id);
 
@@ -29,9 +39,10 @@ export default function CareerTeacher() {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
       <Section title="🎯 진로 카드 현황" right={
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted">공개 {nPub} · 작성 중 {nDraft} · 안 씀 {realPeople.length - nPub - nDraft}</span>
+          <span className="text-sm text-muted">작성 {nDone} · 안 씀 {realPeople.length - nDone}</span>
+          <button className={d.open ? "btn-outline btn-sm" : "btn btn-sm"} onClick={toggleOpen}>{d.open ? "🌍 공개 중 · 닫기" : "🔒 반 전체 공개"}</button>
           <button className="btn-outline btn-sm" onClick={() => downloadCsv("1-7_진로카드.csv", [["학번", "이름", "구분", "희망", "분야", "시작", "지금", "미래", "공개"],
-            ...people.map((p) => { const x = card(p.id); return [p.student_no, p.name, x?.goal_type ?? "", x?.goal ?? "", x?.field ?? "", x?.past ?? "", x?.present ?? "", x?.future ?? "", x ? (x.published ? "공개" : "작성 중") : "안 씀"]; })])}>CSV</button>
+            ...people.map((p) => { const x = card(p.id); return [p.student_no, p.name, x?.goal_type ?? "", x?.goal ?? "", x?.field ?? "", x?.past ?? "", x?.present ?? "", x?.future ?? "", x ? (x.hidden ? "숨김" : "작성") : "안 씀"]; })])}>CSV</button>
         </div>}>
         <div className="overflow-x-auto">
           <table className="table min-w-[520px]">
@@ -45,7 +56,12 @@ export default function CareerTeacher() {
                     <td className="font-semibold">{p.name}{p.is_test && <span className="chip-warn ml-1">테스트</span>}</td>
                     <td>{x ? goalLabel(x) || "-" : <span className="text-muted">-</span>}</td>
                     <td className="text-xs">{x?.field || "-"}</td>
-                    <td>{!x ? <span className="chip-gray">안 씀</span> : x.published ? <span className="chip">공개</span> : <span className="chip-warn">작성 중</span>}</td>
+                    <td onClick={(e) => e.stopPropagation()}>{!x ? <span className="chip-gray">안 씀</span> : (
+                      <span className="flex items-center gap-1.5">
+                        <span className={x.hidden ? "chip-red" : "chip"}>{x.hidden ? "숨김" : "작성"}</span>
+                        <button className="text-[11px] text-muted underline" onClick={() => toggleHidden(p.id, !x.hidden)}>{x.hidden ? "보이기" : "숨기기"}</button>
+                      </span>
+                    )}</td>
                     <td className="text-xs">{d.reactions.filter((r) => r.card_id === p.id).length || "-"}</td>
                   </tr>
                 );
@@ -57,8 +73,8 @@ export default function CareerTeacher() {
       <div className="space-y-4">
         {!c ? <Section><Empty>{people.find((p) => p.id === id)?.name}은(는) 아직 진로 카드를 쓰지 않았어요.</Empty></Section> : (
           <CareerView c={c} name={people.find((p) => p.id === id)?.name ?? ""}>
-            <p className="mt-3 text-xs text-muted">{c.published ? "🌍 반에 공개 중" : "🔒 학생만 보는 중 (선생님은 볼 수 있어요)"}</p>
-            {c.published && <Reactions d={d} cardId={c.student_id} />}
+            <p className="mt-3 text-xs text-muted">{c.hidden ? "🙈 숨김: 반 친구들에게 안 보여요" : d.open ? "🌍 반에 공개 중" : "🔒 아직 비공개 (반 전체 공개를 누르면 보여요)"}</p>
+            {d.open && !c.hidden && <Reactions d={d} cardId={c.student_id} />}
           </CareerView>
         )}
         {c && <CareerDraft studentId={id} />}
