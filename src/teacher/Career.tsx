@@ -42,7 +42,7 @@ export default function CareerTeacher() {
     <Tabs tabs={["현황", "갤러리 미리보기"] as const} value={view} onChange={setView} />
     {view === "갤러리 미리보기" ? (
       <div className="space-y-3">
-        <p className="text-sm text-muted">{d.open ? "🌍 지금 학생들에게 이렇게 보여요." : "🔒 아직 비공개예요. [반 전체 공개]를 누르면 학생들에게 이렇게 보여요."} 숨긴 카드는 빠져요. (테스트 계정 카드는 선생님과 테스트 계정에게만 보여요)</p>
+        <p className="text-sm text-muted">{d.open ? "🌍 지금 학생들에게 이렇게 보여요." : "🔒 아직 비공개예요. [반 전체 공개]를 누르면 학생들에게 이렇게 보여요."} 숨긴 카드는 빠져요.</p>
         {!gallery.length ? <Section><Empty>작성된 카드가 없어요.</Empty></Section> : (
           <div className="grid gap-3 lg:grid-cols-2">
             {gallery.map((x) => <CareerView key={x.student_id} c={x} name={people.find((p) => p.id === x.student_id)?.name ?? ""}><Reactions d={d} cardId={x.student_id} /></CareerView>)}
