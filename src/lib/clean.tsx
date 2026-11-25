@@ -87,11 +87,11 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
               const full = slots.length >= ROLES.length;
               return (
                 <button key={j} onClick={() => onPick(day)}
-                  className={`flex min-h-24 flex-col justify-start rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
-                    off !== undefined ? "border-line bg-stone-100 text-muted" : !active ? "border-line bg-paper text-stone-300" : mine ? "border-brand bg-brand-soft" : full ? "border-line bg-white" : "border-amber-300 bg-amber-50/60"}`}>
+                  className={`flex min-h-24 min-w-0 flex-col justify-start overflow-hidden rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
+                    off !== undefined ? "border-line bg-stone-100 text-muted" : !active ? "border-line bg-paper text-stone-300" : mine ? "border-2 border-ink bg-mint" : full ? "border-line bg-white" : "border-amber-300 bg-butter/60"}`}>
                   <div className="flex w-full items-center justify-between">
-                    <span className={`text-xs font-bold ${day === today ? "rounded bg-ink px-1 text-white" : ""}`}>{Number(day.slice(8))}</span>
-                    {active && <span className={full ? "text-brand" : "text-amber-700"}>{slots.length}/5</span>}
+                    <span className={`text-[11px] font-bold sm:text-xs ${day === today ? "rounded bg-ink px-1 text-white" : ""}`}>{Number(day.slice(8))}</span>
+                    {active && <span className={`text-[10px] sm:text-[11px] ${full ? "text-brand" : "text-amber-700"}`}>{slots.length}/5</span>}
                   </div>
                   {off !== undefined ? <div className="mt-1 truncate">{off || "쉬는 날"}</div> : active && (
                     <ul className="mt-0.5 w-full space-y-px">
@@ -99,14 +99,14 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
                         const x = slots.find((s) => s.role === r.id);
                         if (!x) return (
                           <li key={r.id} className="flex items-center gap-1 whitespace-nowrap">
-                            <span className="w-5 shrink-0 text-[9px] text-muted">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
+                            <span className="hidden w-5 shrink-0 text-[9px] text-muted sm:inline">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
                             <span className="text-stone-300">-</span>
                           </li>
                         );
                         return (
-                          <li key={r.id} className={`flex items-center gap-1 whitespace-nowrap ${x.student_id === me ? "font-bold text-brand" : ""}`}>
-                            <span className="w-5 shrink-0 text-[9px] text-muted">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
-                            <span className="truncate">{nameOf(d, x.student_id)}{x.done_at ? "✓" : ""}</span>
+                          <li key={r.id} className={`flex items-center gap-1 overflow-hidden whitespace-nowrap ${x.student_id === me ? "font-bold text-brand" : ""}`}>
+                            <span className="hidden w-5 shrink-0 text-[9px] text-muted sm:inline">{r.id === "front_back" ? "앞뒤" : r.id.slice(3) + "분"}</span>
+                            <span className="overflow-hidden text-[10px] tracking-tighter sm:text-[11px] sm:tracking-normal">{nameOf(d, x.student_id)}{x.done_at ? "✓" : ""}</span>
                           </li>
                         );
                       })}
@@ -119,7 +119,7 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
           </div>
         ))}
       </div>
-      <p className="mt-2 text-[11px] text-muted">노란 칸: 빈자리 있음 · 파란 칸: 내 청소 · 회색: 쉬는 날/기간 밖</p>
+      <p className="mt-2 text-[11px] text-muted">노란 칸: 빈자리 있음 · 민트 칸: 내 청소 · 회색: 쉬는 날/기간 밖 · 순서: 앞뒤, 1~4분단</p>
     </div>
   );
 }
@@ -142,7 +142,8 @@ export function CleanCountGrid({ d, today, me }: { d: CleanData; today: string; 
   const half = Math.ceil(rows.length / 2);
   const pill = (n: number, cls: string) => n ? <span className={`inline-block min-w-9 rounded-full px-2 py-0.5 text-xs font-bold ${cls}`}>{n}회</span> : <span className="text-stone-300">-</span>;
   const table = (list: typeof rows) => (
-    <table className="w-full text-sm">
+    <table className="w-full table-fixed text-sm">
+      <colgroup><col /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[22%]" /></colgroup>
       <thead>
         <tr className="border-b border-line text-xs">
           <th className="py-1.5 text-left font-semibold text-muted">이름</th>
@@ -165,7 +166,8 @@ export function CleanCountGrid({ d, today, me }: { d: CleanData; today: string; 
   );
   return (
     <div>
-      <div className="grid gap-x-6 sm:grid-cols-2">{table(rows.slice(0, half))}{table(rows.slice(half))}</div>
+      <div className="sm:hidden">{table(rows)}</div>
+      <div className="hidden gap-x-6 sm:grid sm:grid-cols-2">{table(rows.slice(0, half))}{table(rows.slice(half))}</div>
       <p className="mt-2 text-[11px] text-muted"><span className="text-sky-700">예약</span> 앞으로 할 청소 · <span className="text-brand">청소함</span> 청소하고 체크까지 함 · <span className="text-rose">안 함</span> 지난 날인데 체크 안 함</p>
     </div>
   );

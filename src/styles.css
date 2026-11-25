@@ -21,23 +21,28 @@
 html, body { background: var(--color-bg); color: var(--color-ink); -webkit-tap-highlight-color: transparent; }
 body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywhere; }
 input, textarea, select, button { font: inherit; }
-h1, .font-display { font-family: var(--font-display); font-weight: 400 !important; letter-spacing: -0.01em; }
-.card h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.125rem; }
+/* iOS 날짜 입력칸이 카드 밖으로 넘치지 않게 */
+input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; min-width: 0; max-width: 100%; display: block; min-height: 2.875rem; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+/* 큰 제목만 검은고딕(원래 굵은 글꼴이라 가짜 볼드 금지), 작은 제목은 프리텐다드 굵게 */
+h1 { font-family: var(--font-display); font-weight: 400 !important; font-synthesis: none; letter-spacing: -0.01em; }
+.font-display { font-weight: 800; letter-spacing: -0.02em; }
+.card h2 { font-weight: 800; font-size: 1.0625rem; letter-spacing: -0.02em; }
 
 @layer components {
   .card { @apply rounded-2xl border border-ink bg-paper p-5; }
   .ill { @apply grid shrink-0 place-items-center rounded-full text-ink; }
   .bubble { @apply inline-flex items-center rounded-full border-[1.5px] border-ink bg-white px-3 py-0.5 text-sm font-extrabold; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40; }
-  .btn-outline { @apply inline-flex items-center justify-center gap-1.5 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-butter active:scale-[0.98] disabled:opacity-40; }
+  .btn { @apply inline-flex shrink-0 items-center whitespace-nowrap justify-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40; }
+  .btn-outline { @apply inline-flex shrink-0 items-center whitespace-nowrap justify-center gap-1.5 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-butter active:scale-[0.98] disabled:opacity-40; }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
-  .btn-danger { @apply inline-flex items-center justify-center rounded-full border border-rose/30 bg-paper px-3 py-1.5 text-xs font-semibold text-rose hover:bg-rose-50 disabled:opacity-40; }
+  .btn-danger { @apply inline-flex shrink-0 items-center whitespace-nowrap justify-center rounded-full border border-rose/30 bg-paper px-3 py-1.5 text-xs font-semibold text-rose hover:bg-rose-50 disabled:opacity-40; }
   .input { @apply w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-[15px] outline-none focus:border-ink focus:ring-2 focus:ring-butter; }
   .label { @apply mb-1.5 block text-sm font-semibold text-ink; }
-  .chip { @apply inline-flex items-center rounded-full bg-mint px-2.5 py-0.5 text-xs font-semibold text-emerald-900; }
-  .chip-warn { @apply inline-flex items-center rounded-full bg-butter px-2.5 py-0.5 text-xs font-semibold text-amber-800; }
-  .chip-gray { @apply inline-flex items-center rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600; }
-  .chip-red { @apply inline-flex items-center rounded-full bg-pink px-2.5 py-0.5 text-xs font-semibold text-rose; }
+  .chip { @apply inline-flex items-center whitespace-nowrap rounded-full bg-mint px-2.5 py-0.5 text-xs font-semibold text-emerald-900; }
+  .chip-warn { @apply inline-flex items-center whitespace-nowrap rounded-full bg-butter px-2.5 py-0.5 text-xs font-semibold text-amber-800; }
+  .chip-gray { @apply inline-flex items-center whitespace-nowrap rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600; }
+  .chip-red { @apply inline-flex items-center whitespace-nowrap rounded-full bg-pink px-2.5 py-0.5 text-xs font-semibold text-rose; }
   .table { @apply w-full text-sm; }
   .table th { @apply whitespace-nowrap border-b border-ink px-3 py-2 text-left text-xs font-semibold text-muted; }
   .table td { @apply border-b border-line/70 px-3 py-2 align-top; }

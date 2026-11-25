@@ -20,7 +20,7 @@ type Q = { key: string; q: string; ph: string; optional?: boolean; major?: strin
 export const SECTIONS: { key: "past" | "present" | "future"; icon: string; title: string; q: string; items: Q[] }[] = [
   { key: "past", icon: "🌱", title: "시작", q: "왜 이 꿈을 갖게 됐나요?", items: [
     { key: "past_why", q: "언제, 어떤 계기로 관심을 갖게 됐나요?", ph: "예: 중학교 때 로봇 대회 영상을 보고…" },
-    { key: "past_model", q: "닮고 싶은 롤모델이 있다면? 어떤 점을 닮고 싶나요?", ph: "가족, 선배, 선생님, 유명인 누구든 괜찮아요", optional: true },
+    { key: "past_model", q: "나의 롤모델은 누구이고, 어떤 점을 닮고 싶나요?", ph: "가족, 선배, 선생님, 유명인 누구든 괜찮아요. 특정 인물이 없으면 닮고 싶은 사람의 모습을 써도 돼요" },
   ] },
   { key: "present", icon: "🔍", title: "지금", q: "이 꿈을 위해 무엇을 하고 있나요?", items: [
     { key: "present_what", q: "이 일은 어떤 일을 하나요?", major: "이 학과에서는 무엇을 배우나요?", ph: "알아본 내용을 내 말로 정리해요" },
@@ -29,7 +29,7 @@ export const SECTIONS: { key: "past" | "present" | "future"; icon: string; title
   ] },
   { key: "future", icon: "🚀", title: "미래", q: "어떤 사람이 되고 싶나요?", items: [
     { key: "future_10y", q: "10년 뒤 나는 어떤 모습일까요?", ph: "구체적으로 상상해 봐요" },
-    { key: "future_give", q: "이 일을 통해 사람들에게 어떤 도움을 주고 싶나요?", ph: "나의 포부", optional: true },
+    { key: "future_give", q: "이 일을 통해 사람들에게 어떤 도움을 주고 싶나요?", ph: "나의 포부" },
   ] },
 ];
 export const qText = (it: Q, goalType: string) => (goalType === "major" && it.major ? it.major : it.q);

@@ -59,8 +59,14 @@ export default function CareerStudent({ me }: { me: Me }) {
   const nameOf = (id: string) => d.people.find((p) => p.id === id)?.name ?? "";
 
   const save = async () => {
-    if (!f.goal.trim() && f.goal_type !== "explore") return toast("희망 진로나 학과를 적어 주세요.", "err");
     const answers = f.answers ?? {};
+    if (!f.goal.trim()) return toast(f.goal_type === "explore" ? "관심 있는 분야를 적어 주세요." : "희망 진로나 학과를 적어 주세요.", "err");
+    if (!f.field) return toast("분야를 골라 주세요.", "err");
+    const missing = SECTIONS.flatMap((sec) => sec.items.filter((it) => !answers[it.key]?.trim()).map((it) => `${sec.title}: ${qText(it, f.goal_type)}`));
+    if (missing.length) {
+      document.getElementById(`c-${SECTIONS.flatMap((x) => x.items).find((it) => !answers[it.key]?.trim())!.key}`)?.focus();
+      return toast(`모든 질문에 답해 주세요. (${missing.length}개 남음)`, "err");
+    }
     const composed = Object.fromEntries(SECTIONS.map((sec) => [sec.key, composeSection(sec, answers, f.goal_type)])) as Record<"past" | "present" | "future", string>;
     setBusy(true);
     const { hidden: _h, published: _p, published_at: _pa, ...rest } = f;
@@ -100,7 +106,7 @@ export default function CareerStudent({ me }: { me: Me }) {
                 placeholder={f.goal_type === "major" ? "예: 기계공학과" : f.goal_type === "explore" ? "관심 있는 분야 (예: 사람을 돕는 일)" : "예: 로봇 공학자"} aria-label="희망 진로" />
             </div>
             <div>
-              <p className="label">분야</p>
+              <p className="label">분야 <span className="text-rose">*</span></p>
               <div className="flex flex-wrap gap-1.5">
                 {FIELDS.map((x) => <button key={x} type="button" onClick={() => setF({ ...f, field: f.field === x ? "" : x })} className={f.field === x ? "btn btn-sm" : "btn-outline btn-sm"}>{x}</button>)}
               </div>
@@ -112,7 +118,7 @@ export default function CareerStudent({ me }: { me: Me }) {
                   {sec.items.map((it) => (
                     <div key={it.key}>
                       <label className="mb-1 block text-sm font-semibold" htmlFor={`c-${it.key}`}>
-                        {qText(it, f.goal_type)} {it.optional && <span className="text-xs font-normal text-muted">(선택)</span>}
+                        {qText(it, f.goal_type)} <span className="text-rose">*</span>
                       </label>
                       <textarea id={`c-${it.key}`} className="input min-h-20 text-sm" maxLength={600} placeholder={it.ph}
                         value={f.answers?.[it.key] ?? ""} onChange={(e) => setF({ ...f, answers: { ...(f.answers ?? {}), [it.key]: e.target.value } })} />

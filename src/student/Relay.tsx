@@ -167,7 +167,7 @@ function WriteForm({ day, targetId, targetName, onDone }: { day: string; targetI
         </div>
       )}
       <div className="flex gap-2">
-        <input id="st" className="input" maxLength={40} placeholder="강점을 직접 적어 주세요" value={custom} disabled={tags.length >= 3}
+        <input id="st" className="input min-w-0 flex-1" maxLength={40} placeholder="강점을 직접 적어 주세요" value={custom} disabled={tags.length >= 3}
           onChange={(e) => { setCustom(e.target.value); setWarn(null); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); add(); } }} />
         <button className="btn-outline" onClick={add} disabled={!custom.trim() || tags.length >= 3}>추가</button>
