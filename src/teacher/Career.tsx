@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CareerView, goalLabel, loadCareer } from "../lib/career";
 import { callFn, supabase } from "../lib/supabase";
 import { downloadCsv, errMsg } from "../lib/util";
-import { Empty, Loading, Section, useToast } from "../ui/kit";
+import { Empty, Loading, Section, Tabs, useToast } from "../ui/kit";
 import { Reactions } from "../student/Career";
 
 type Data = Awaited<ReturnType<typeof loadCareer>>;
@@ -11,6 +11,7 @@ export default function CareerTeacher() {
   const toast = useToast();
   const [d, setD] = useState<Data | null>(null);
   const [sel, setSel] = useState("");
+  const [view, setView] = useState<"현황" | "갤러리 미리보기">("현황");
   const load = useCallback(async () => {
     try { setD(await loadCareer()); } catch (e) { toast(errMsg(e), "err"); }
   }, [toast]);
@@ -35,7 +36,20 @@ export default function CareerTeacher() {
   const id = sel || people[0]?.id || "";
   const c = card(id);
 
+  const gallery = d.cards.filter((x) => !x.hidden);
   return (
+    <>
+    <Tabs tabs={["현황", "갤러리 미리보기"] as const} value={view} onChange={setView} />
+    {view === "갤러리 미리보기" ? (
+      <div className="space-y-3">
+        <p className="text-sm text-muted">{d.open ? "🌍 지금 학생들에게 이렇게 보여요." : "🔒 아직 비공개예요. [반 전체 공개]를 누르면 학생들에게 이렇게 보여요."} 숨긴 카드는 빠져요. (테스트 계정 카드는 선생님과 테스트 계정에게만 보여요)</p>
+        {!gallery.length ? <Section><Empty>작성된 카드가 없어요.</Empty></Section> : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {gallery.map((x) => <CareerView key={x.student_id} c={x} name={people.find((p) => p.id === x.student_id)?.name ?? ""}><Reactions d={d} cardId={x.student_id} /></CareerView>)}
+          </div>
+        )}
+      </div>
+    ) : (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
       <Section title="🎯 진로 카드 현황" right={
         <div className="flex items-center gap-2">
@@ -80,6 +94,8 @@ export default function CareerTeacher() {
         {c && <CareerDraft studentId={id} />}
       </div>
     </div>
+    )}
+    </>
   );
 }
 

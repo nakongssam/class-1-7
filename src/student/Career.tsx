@@ -75,7 +75,7 @@ export default function CareerStudent({ me }: { me: Me }) {
   };
   const visible = (c: CareerCard) => d.open && !c.hidden;
 
-  const published = d.cards.filter((c) => visible(c) && (c.student_id === me.id || !d.people.find((p) => p.id === c.student_id)?.is_test));
+  const published = d.cards.filter((c) => visible(c) && (me.role === "test" || !d.people.find((p) => p.id === c.student_id)?.is_test)); // 테스트 계정끼리는 서로 보임
   const shown = published.filter((c) => filter === "전체" || c.field === filter || (filter === "탐색 중" && c.goal_type === "explore"))
     .sort((a, b) => (nameOf(a.student_id) > nameOf(b.student_id) ? 1 : -1));
   const counts = (k: string) => published.filter((c) => c.field === k || (k === "탐색 중" && c.goal_type === "explore")).length;
