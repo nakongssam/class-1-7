@@ -28,6 +28,13 @@ export default function CareerTeacher() {
     if (error) return toast(errMsg(error), "err");
     toast(d.open ? "갤러리를 닫았어요." : "반 전체에 공개했어요! 🎉"); load();
   };
+  const removeCard = async (sid: string) => {
+    const nm = people.find((p) => p.id === sid)?.name ?? "";
+    if (!window.confirm(`${nm}의 진로 카드를 삭제할까요?\n받은 응원도 함께 지워지고 되돌릴 수 없어요. (학생은 다시 쓸 수 있어요)`)) return;
+    const { error } = await supabase.from("career_cards").delete().eq("student_id", sid);
+    if (error) return toast(errMsg(error), "err");
+    toast("삭제했어요."); load();
+  };
   const toggleHidden = async (id: string, hidden: boolean) => {
     const { error } = await supabase.from("career_cards").update({ hidden }).eq("student_id", id);
     if (error) return toast(errMsg(error), "err");
@@ -45,7 +52,8 @@ export default function CareerTeacher() {
         <p className="text-sm text-muted">{d.open ? "🌍 지금 학생들에게 이렇게 보여요." : "🔒 아직 비공개예요. [반 전체 공개]를 누르면 학생들에게 이렇게 보여요."} 숨긴 카드는 빠져요.</p>
         {!gallery.length ? <Section><Empty>작성된 카드가 없어요.</Empty></Section> : (
           <div className="grid gap-3 lg:grid-cols-2">
-            {gallery.map((x) => <CareerView key={x.student_id} c={x} name={people.find((p) => p.id === x.student_id)?.name ?? ""}><Reactions d={d} cardId={x.student_id} /></CareerView>)}
+            {gallery.map((x) => <CareerView key={x.student_id} c={x} name={people.find((p) => p.id === x.student_id)?.name ?? ""}><Reactions d={d} cardId={x.student_id} />
+              <div className="mt-3 flex gap-2"><button className="btn-outline btn-sm" onClick={() => toggleHidden(x.student_id, true)}>숨기기</button><button className="btn-danger" onClick={() => removeCard(x.student_id)}>삭제</button></div></CareerView>)}
           </div>
         )}
       </div>
@@ -89,6 +97,7 @@ export default function CareerTeacher() {
           <CareerView c={c} name={people.find((p) => p.id === id)?.name ?? ""}>
             <p className="mt-3 text-xs text-muted">{c.hidden ? "🙈 숨김: 반 친구들에게 안 보여요" : d.open ? "🌍 반에 공개 중" : "🔒 아직 비공개 (반 전체 공개를 누르면 보여요)"}</p>
             {d.open && !c.hidden && <Reactions d={d} cardId={c.student_id} />}
+            <div className="mt-3 flex gap-2"><button className="btn-outline btn-sm" onClick={() => toggleHidden(c.student_id, !c.hidden)}>{c.hidden ? "보이기" : "숨기기"}</button><button className="btn-danger" onClick={() => removeCard(c.student_id)}>삭제</button></div>
           </CareerView>
         )}
         {c && <CareerDraft studentId={id} />}

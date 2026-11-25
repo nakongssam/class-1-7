@@ -7,3 +7,4 @@
 -- 015: career_cards.answers jsonb (세부 질문별 답), 선택과목 칸 화면에서 제거
 -- 016: 교사만 공개 설정 — class_settings.career_open, career_cards.hidden, career_guard 트리거(학생은 hidden/published 변경 불가), 읽기 = 본인·교사·(공개 중 & 숨김 아님)
 -- 017: career_reactions.emoji → 응원 문구 4종 ('멋진 꿈이야','응원해!','나도 관심 있어','많이 배웠어')
+-- 018: 교사 진로 카드 삭제 정책
