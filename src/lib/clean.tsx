@@ -88,7 +88,7 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
               return (
                 <button key={j} onClick={() => onPick(day)}
                   className={`flex min-h-24 min-w-0 flex-col justify-start overflow-hidden rounded-lg border p-1 text-left text-[11px] leading-tight transition ${selected === day ? "ring-2 ring-brand" : ""} ${
-                    off !== undefined ? "border-line bg-stone-100 text-muted" : !active ? "border-line bg-paper text-stone-300" : mine ? "border-2 border-ink bg-mint" : full ? "border-line bg-white" : "border-amber-300 bg-butter/60"}`}>
+                    off !== undefined ? "border-line bg-stone-100 text-muted" : !active ? "border-line bg-paper text-stone-300" : mine ? "border-2 border-brand bg-brand-soft" : full ? "border-line bg-white" : "border-amber-300 bg-butter/60"}`}>
                   <div className="flex w-full items-center justify-between">
                     <span className={`text-[11px] font-bold sm:text-xs ${day === today ? "rounded bg-ink px-1 text-white" : ""}`}>{Number(day.slice(8))}</span>
                     {active && <span className={`text-[10px] sm:text-[11px] ${full ? "text-brand" : "text-amber-700"}`}>{slots.length}/5</span>}
@@ -119,7 +119,7 @@ export function CleanCalendar({ d, ym, setYm, selected, onPick, today, me }: {
           </div>
         ))}
       </div>
-      <p className="mt-2 text-[11px] text-muted">노란 칸: 빈자리 있음 · 민트 칸: 내 청소 · 회색: 쉬는 날/기간 밖 · 순서: 앞뒤, 1~4분단</p>
+      <p className="mt-2 text-[11px] text-muted">노란 칸: 빈자리 있음 · 파란 칸: 내 청소 · 회색: 쉬는 날/기간 밖 · 순서: 앞뒤, 1~4분단</p>
     </div>
   );
 }

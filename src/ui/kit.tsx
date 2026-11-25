@@ -30,7 +30,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, badges }: { tabs
     <div role="tablist" className="no-print -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
       {tabs.map((t) => (
         <button key={t} role="tab" aria-selected={value === t} onClick={() => onChange(t)}
-          className={`shrink-0 rounded-full border-[1.5px] px-4 py-1.5 text-sm font-semibold transition ${value === t ? "border-ink bg-ink text-white" : "border-ink/20 bg-paper text-muted hover:border-ink hover:text-ink"}`}>
+          className={`shrink-0 rounded-full border-[1.5px] px-4 py-1.5 text-sm font-semibold transition ${value === t ? "border-ink bg-ink text-white" : "border-line bg-paper text-muted hover:border-brand hover:text-ink"}`}>
           {t}
           {!!badges?.[t] && <span className="ml-1.5 rounded-full bg-rose px-1.5 text-[11px] text-white">{badges[t]}</span>}
         </button>
@@ -66,5 +66,32 @@ export function Progress({ value }: { value: number }) {
     <div className="h-2 overflow-hidden rounded-full bg-stone-200">
       <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
+  );
+}
+
+/** 흐린 별 배경 장식 */
+export function SkyDeco() {
+  const star = "M50 4l14 29 32 4-23 22 6 32-29-16-29 16 6-32L4 37l32-4z";
+  const tw = "M20 0C21 15 25 19 40 20 25 21 21 25 20 40 19 25 15 21 0 20 15 19 19 15 20 0z";
+  return (
+    <svg className="sky-deco no-print" width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <filter id="skyblur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22" /></filter>
+        <symbol id="skystar" viewBox="0 0 100 100"><path d={star} fill="#B3DBFB" /></symbol>
+        <symbol id="skytw" viewBox="0 0 40 40"><path d={tw} /></symbol>
+      </defs>
+      <svg x="100%" y="0" overflow="visible"><g filter="url(#skyblur)" transform="translate(-230,-30)"><use href="#skystar" width="260" height="260" /></g></svg>
+      <svg x="0" y="100%" overflow="visible"><g filter="url(#skyblur)" transform="translate(-70,-250)"><use href="#skystar" width="250" height="250" /></g></svg>
+      <svg x="0" y="45%" overflow="visible"><g filter="url(#skyblur)" opacity=".55" transform="translate(-90,-60)"><use href="#skystar" width="160" height="160" /></g></svg>
+      <g fill="#8CC7F5">
+        <svg x="8%" y="18%" overflow="visible"><use href="#skytw" width="16" height="20" /></svg>
+        <svg x="88%" y="34%" overflow="visible"><use href="#skytw" width="12" height="14" /></svg>
+        <svg x="82%" y="86%" overflow="visible"><use href="#skytw" width="18" height="22" /></svg>
+      </g>
+      <g fill="#ffffff">
+        <svg x="80%" y="9%" overflow="visible"><use href="#skytw" width="22" height="28" /></svg>
+        <svg x="10%" y="80%" overflow="visible"><use href="#skytw" width="18" height="22" /></svg>
+      </g>
+    </svg>
   );
 }

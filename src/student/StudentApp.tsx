@@ -1,3 +1,4 @@
+import { SkyDeco } from "../ui/kit";
 import { useEffect, useState } from "react";
 import type { Me } from "../App";
 import { ChangePin, signOut } from "../App";
@@ -36,10 +37,11 @@ export default function StudentApp({ me }: { me: Me }) {
   const [tab, setTab] = useHashTab();
   return (
     <div className="min-h-dvh pb-24">
-      <header className="no-print sticky top-0 z-20 border-b border-ink bg-bg/90 backdrop-blur">
+      <SkyDeco />
+      <header className="no-print sticky top-0 z-20 border-b border-line bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           <button onClick={() => setTab("home")} className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-ink font-display text-xs text-white">1-7</span>
+            <span className="grid size-8 place-items-center rounded-full bg-ink text-xs font-black text-white">1-7</span>
             <span className="font-bold">{me.name}</span>
             {me.role === "test" && <span className="chip-warn">테스트</span>}
           </button>
@@ -54,11 +56,11 @@ export default function StudentApp({ me }: { me: Me }) {
         {tab === "clean" && <CleanStudent me={me} />}
         {tab === "career" && <CareerStudent me={me} />}
       </main>
-      <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-ink bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="메뉴">
+      <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="메뉴">
         <div className="mx-auto grid max-w-2xl grid-cols-6">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}
-              className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold ${tab === t.id ? "text-ink" : "text-stone-400"}`}>
+              className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold ${tab === t.id ? "text-brand" : "text-[#9aa9bf]"}`}>
               <i className={`ti ${t.icon} text-[22px] leading-none`} aria-hidden="true" />{t.label}
             </button>
           ))}

@@ -3,7 +3,7 @@ import type { Me } from "../App";
 import { ChangePin, signOut } from "../App";
 import { callFn, supabase, type Student } from "../lib/supabase";
 import { downloadCsv, errMsg, formatDay } from "../lib/util";
-import { Section, Tabs, useToast } from "../ui/kit";
+import { Section, SkyDeco, Tabs, useToast } from "../ui/kit";
 import AttendanceTeacher from "./Attendance";
 import RelayTeacher from "./Relay";
 import StudyTeacher from "./Study";
@@ -19,11 +19,12 @@ export default function TeacherApp({ me }: { me: Me }) {
   const go = (t: Tab) => { setTab(t); location.hash = encodeURIComponent(t); };
   return (
     <div className="min-h-dvh pb-16">
-      <header className="no-print sticky top-0 z-20 border-b border-ink bg-bg/90 backdrop-blur">
+      <SkyDeco />
+      <header className="no-print sticky top-0 z-20 border-b border-line bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-ink font-display text-xs text-white">1-7</span>
-            <span className="font-display text-lg">교사 화면</span>
+            <span className="grid size-8 place-items-center rounded-full bg-ink text-xs font-black text-white">1-7</span>
+            <span className="text-lg font-extrabold">교사 화면</span>
             <span className="hidden text-sm text-muted sm:inline">· {formatDay(me.today)}</span>
           </div>
           <button className="text-sm text-muted hover:underline" onClick={signOut}>로그아웃</button>

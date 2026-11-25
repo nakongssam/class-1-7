@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { callFn, supabase, type Student } from "./lib/supabase";
-import { useToast } from "./ui/kit";
+import { SkyDeco, useToast } from "./ui/kit";
 import StudentApp from "./student/StudentApp";
 import TeacherApp from "./teacher/TeacherApp";
 
@@ -92,9 +92,10 @@ function Login() {
 
   return (
     <div className="grid min-h-dvh place-items-center px-5 py-10">
+      <SkyDeco />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 grid size-16 place-items-center rounded-full bg-ink font-display text-xl text-white">1-7</div>
+          <div className="mx-auto mb-3 grid size-16 place-items-center rounded-full bg-ink text-xl font-black text-white">1-7</div>
           <h1 className="text-4xl">우리반</h1>
           <p className="mt-1 text-sm text-muted">출결 · 칭찬 · 스터디 · 청소 · 진로</p>
         </div>
