@@ -30,7 +30,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, badges }: { tabs
     <div role="tablist" className="no-print -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
       {tabs.map((t) => (
         <button key={t} role="tab" aria-selected={value === t} onClick={() => onChange(t)}
-          className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${value === t ? "bg-ink text-white" : "bg-paper text-muted hover:text-ink border border-line"}`}>
+          className={`shrink-0 rounded-full border-[1.5px] px-4 py-1.5 text-sm font-semibold transition ${value === t ? "border-ink bg-ink text-white" : "border-ink/20 bg-paper text-muted hover:border-ink hover:text-ink"}`}>
           {t}
           {!!badges?.[t] && <span className="ml-1.5 rounded-full bg-rose px-1.5 text-[11px] text-white">{badges[t]}</span>}
         </button>

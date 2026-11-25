@@ -146,7 +146,10 @@ export default function StudyStudent({ me }: { me: Me }) {
 
   return (
     <>
-      <h1 className="text-xl font-extrabold">📚 스터디그룹</h1>
+      <div className="flex items-center justify-between gap-3 border-b border-ink pb-4 pt-1">
+        <div><span className="bubble text-xs">함께 공부하고 기록해요</span><h1 className="mt-2 text-[34px] leading-none">스터디그룹</h1></div>
+        <span className="ill size-16 bg-butter"><i className="ti ti-books text-4xl" aria-hidden="true" /></span>
+      </div>
       {invites.length > 0 && (
         <Section title="받은 그룹 초대" className="border-amber-300">
           <div className="space-y-3">

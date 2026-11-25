@@ -81,7 +81,10 @@ export default function CareerStudent({ me }: { me: Me }) {
 
   return (
     <>
-      <h1 className="text-xl font-extrabold">🎯 진로</h1>
+      <div className="flex items-center justify-between gap-3 border-b border-ink pb-4 pt-1">
+        <div><span className="bubble text-xs">나의 꿈 이야기</span><h1 className="mt-2 text-[34px] leading-none">진로</h1></div>
+        <span className="ill size-16 bg-mint"><i className="ti ti-target-arrow text-4xl" aria-hidden="true" /></span>
+      </div>
       <Tabs tabs={SUB} value={sub} onChange={setSub} badges={{ "반 진로 갤러리": d.open ? published.length : 0 }} />
 
       {sub === "내 진로 카드" && (showForm ? (

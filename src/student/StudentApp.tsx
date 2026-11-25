@@ -12,12 +12,12 @@ import { roleLabel, type CleanSlot } from "../lib/clean";
 import { DutyBoard, dutyItems, type DutyRow } from "../lib/duties";
 
 const TABS = [
-  { id: "home", label: "홈", icon: "🏠" },
-  { id: "attendance", label: "출결", icon: "🌱" },
-  { id: "relay", label: "칭찬", icon: "💌" },
-  { id: "study", label: "스터디", icon: "📚" },
-  { id: "clean", label: "청소", icon: "🧹" },
-  { id: "career", label: "진로", icon: "🎯" },
+  { id: "home", label: "홈", icon: "ti-home" },
+  { id: "attendance", label: "출결", icon: "ti-calendar-check" },
+  { id: "relay", label: "칭찬", icon: "ti-heart" },
+  { id: "study", label: "스터디", icon: "ti-books" },
+  { id: "clean", label: "청소", icon: "ti-bucket" },
+  { id: "career", label: "진로", icon: "ti-target-arrow" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -36,10 +36,10 @@ export default function StudentApp({ me }: { me: Me }) {
   const [tab, setTab] = useHashTab();
   return (
     <div className="min-h-dvh pb-24">
-      <header className="no-print sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur">
+      <header className="no-print sticky top-0 z-20 border-b border-ink bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           <button onClick={() => setTab("home")} className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-brand text-xs font-extrabold text-white">1-7</span>
+            <span className="grid size-8 place-items-center rounded-full bg-ink font-display text-xs text-white">1-7</span>
             <span className="font-bold">{me.name}</span>
             {me.role === "test" && <span className="chip-warn">테스트</span>}
           </button>
@@ -54,12 +54,12 @@ export default function StudentApp({ me }: { me: Me }) {
         {tab === "clean" && <CleanStudent me={me} />}
         {tab === "career" && <CareerStudent me={me} />}
       </main>
-      <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="메뉴">
+      <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-ink bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="메뉴">
         <div className="mx-auto grid max-w-2xl grid-cols-6">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}
-              className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold ${tab === t.id ? "text-brand" : "text-muted"}`}>
-              <span className="text-xl leading-none">{t.icon}</span>{t.label}
+              className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-bold ${tab === t.id ? "text-ink" : "text-stone-400"}`}>
+              <i className={`ti ${t.icon} text-[22px] leading-none`} aria-hidden="true" />{t.label}
             </button>
           ))}
         </div>
@@ -129,51 +129,64 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
 
   return (
     <>
-      <div className="pt-1">
-        <p className="text-sm text-muted">{formatDay(me.today)}</p>
-        <h1 className="mt-0.5 text-2xl font-extrabold">안녕, {me.name}!</h1>
+      <div className="relative py-3 text-center">
+        <i className="ti ti-sparkles absolute right-6 top-2 text-lg text-amber-400" aria-hidden="true" />
+        <i className="ti ti-star absolute left-8 top-10 text-sm" aria-hidden="true" />
+        <i className="ti ti-sparkles absolute bottom-3 left-4 text-base text-emerald-500" aria-hidden="true" />
+        <span className="bubble">{formatDay(me.today)} · 오늘도 반가워</span>
+        <h1 className="mt-2 text-[40px] leading-[1.05]">안녕,<br />{me.name}!</h1>
       </div>
 
       {monthCheck && (
-        <button onClick={() => go("attendance")} className="card w-full border-amber-300 bg-amber-50 text-left">
+        <button onClick={() => go("attendance")} className="card w-full bg-butter text-left">
           <p className="font-bold">📋 출결 기록 확인 요청</p>
           <p className="mt-1 text-sm text-muted">선생님이 이번 달 내 출결 기록을 확인해 달래요. 눌러서 확인하기</p>
         </button>
       )}
 
       <button onClick={() => go("relay")} className="card w-full text-left">
-        <p className="text-sm text-muted">💌 이번 주 칭찬 주인공</p>
-        {hero === undefined ? <p className="mt-2 text-muted">…</p> : hero ? (
-          <div className="mt-1">
-            <p className="text-xl font-extrabold text-brand">{hero.names.join(" · ")}</p>
-            <span className={hero.left ? "chip-warn mt-2" : "chip mt-2"}>{hero.left ? `아직 ${hero.left}명에게 안 썼어요 →` : "모두 보냈어요 💛"}</span>
+        <div className="flex items-center gap-4">
+          <span className="ill size-14 bg-pink"><i className="ti ti-heart-handshake text-3xl" aria-hidden="true" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-lg">이번 주 칭찬 주인공</p>
+            {hero === undefined ? <p className="text-muted">…</p> : hero ? (
+              <>
+                <p className="mt-0.5 font-bold">{hero.names.join(" · ")}</p>
+                <span className={hero.left ? "chip-warn mt-1.5" : "chip mt-1.5"}>{hero.left ? `아직 ${hero.left}명에게 안 썼어요 →` : "모두 보냈어요 💛"}</span>
+              </>
+            ) : <p className="mt-0.5 text-sm">평일에 공개돼요</p>}
           </div>
-        ) : <p className="mt-1 font-semibold">평일에 공개돼요</p>}
+        </div>
       </button>
 
       <div className="grid grid-cols-2 gap-3">
         <button onClick={() => go("attendance")} className="card text-left">
-          <p className="text-2xl">🌱</p>
-          <p className="mt-2 font-bold">출결 보고</p>
+          <span className="ill size-11 bg-sky"><i className="ti ti-calendar-check text-2xl" aria-hidden="true" /></span>
+          <p className="mt-2 font-display text-lg">출결 보고</p>
           <p className="text-xs text-muted">지각·조퇴·결과·결석</p>
         </button>
         <button onClick={() => go("study")} className="card relative text-left">
-          <p className="text-2xl">📚</p>
-          <p className="mt-2 font-bold">스터디그룹</p>
+          <span className="ill size-11 bg-butter"><i className="ti ti-books text-2xl" aria-hidden="true" /></span>
+          <p className="mt-2 font-display text-lg">스터디그룹</p>
           <p className="text-xs text-muted">{invites ? `초대 ${invites}건` : "활동 일지 쓰기"}</p>
           {invites > 0 && <span className="absolute right-4 top-4 size-2.5 rounded-full bg-rose" />}
         </button>
       </div>
 
       <section className="card">
-        <p className="text-sm text-muted">🙋 내 역할</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-        <p className="text-xl font-extrabold text-brand">{duty?.duty || "1인 1역 없음"}</p>
+        <div className="flex items-center gap-4">
+        <span className="ill size-14 bg-mint"><i className="ti ti-user-star text-3xl" aria-hidden="true" /></span>
+        <div className="min-w-0 flex-1">
+        <p className="font-display text-lg">내 역할</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2">
+        <p className="text-lg font-bold">{duty?.duty || "1인 1역 없음"}</p>
         {nextClean && (
-          <p className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${nextClean.day === me.today ? "bg-amber-100 text-amber-800" : "bg-stone-100 text-stone-700"}`}>
-            🧹 {nextClean.day === me.today ? "오늘 청소 당번" : `${formatDay(nextClean.day)} 청소 당번`} · {roleLabel(nextClean.role)}{nextClean.done_at ? " ✓" : ""}
+          <p className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${nextClean.day === me.today ? "bg-butter" : "bg-stone-100 text-stone-700"}`}>
+            {nextClean.day === me.today ? "오늘 청소 당번" : `${formatDay(nextClean.day)} 청소 당번`} · {roleLabel(nextClean.role)}{nextClean.done_at ? " ✓" : ""}
           </p>
         )}
+        </div>
+        </div>
         </div>
         {showChecks && duty && dutyItems(duty).length > 0 && (
           <div className="mt-3 border-t border-line pt-3">
@@ -204,23 +217,28 @@ function Home({ me, go }: { me: Me; go: (t: TabId) => void }) {
       </section>
 
       {clean?.mine && (
-        <section className="card border-amber-300 bg-amber-50">
-          <p className="font-bold">🧹 {clean.mine.day === me.today ? "오늘 청소 당번이에요" : "체크 안 한 청소가 있어요"} · {roleLabel(clean.mine.role)}</p>
+        <section className="card bg-butter">
+          <p className="font-display text-lg">{clean.mine.day === me.today ? "오늘 청소 당번이에요" : "체크 안 한 청소가 있어요"} · {roleLabel(clean.mine.role)}</p>
           <p className="mb-2 mt-0.5 text-xs text-muted">청소를 다 했으면 열심히 한 정도를 눌러 체크해요.</p>
           <RatingButtons slot={clean.mine} onDone={loadClean} />
         </section>
       )}
       <button onClick={() => go("clean")} className="card w-full text-left">
-        <p className="text-sm text-muted">🧹 오늘 청소</p>
+        <div className="flex items-center gap-4">
+        <span className="ill size-14 bg-sky"><i className="ti ti-bucket text-3xl" aria-hidden="true" /></span>
+        <div className="min-w-0 flex-1">
+        <p className="font-display text-lg">오늘 청소</p>
         {clean?.today.length ? (
           <p className="mt-1 text-sm leading-relaxed">{["front_back", "col1", "col2", "col3", "col4"].map((r) => clean.today.find((s) => s.role === r)).filter(Boolean).map((s) => <span key={s!.role} className="mr-2 inline-block"><span className="text-muted">{roleLabel(s!.role)}</span> <b>{s!.name}</b>{s!.done_at ? " ✓" : ""}</span>)}</p>
-        ) : <p className="mt-1 font-semibold">오늘은 당번이 없어요 · 달력 보기 →</p>}
+        ) : <p className="mt-0.5 text-sm">오늘은 당번이 없어요 · 달력 보기 →</p>}
+        </div>
+        </div>
       </button>
 
 
       <section className="card">
         <button className="flex w-full items-center justify-between text-left" onClick={() => setShowPin((v) => !v)}>
-          <span className="font-bold">🔑 비밀번호 바꾸기</span><span className="text-muted">{showPin ? "닫기" : "열기"}</span>
+          <span className="flex items-center gap-2 font-bold"><i className="ti ti-key text-lg" aria-hidden="true" />비밀번호 바꾸기</span><span className="text-muted">{showPin ? "닫기" : "열기"}</span>
         </button>
         {showPin && <div className="mt-4"><ChangePin onDone={() => setShowPin(false)} /></div>}
         <p className="mt-3 text-xs text-muted">비밀번호를 잊었으면 선생님께 초기화를 부탁하세요. 초기화하면 생년월일로 들어와서 새로 정해요.</p>

@@ -1,36 +1,45 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #fffdf8;
-  --color-bg: #f7f5ef;
-  --color-ink: #1f2a24;
-  --color-muted: #6b7570;
-  --color-line: #e4e0d4;
-  --color-brand: #2f6b4f;
-  --color-brand-soft: #e3efe7;
-  --color-warm: #f3e7d3;
-  --color-rose: #c2415d;
-  --font-sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --color-paper: #ffffff;
+  --color-bg: #ffffff;
+  --color-ink: #111111;
+  --color-muted: #6b6b6b;
+  --color-line: #e6e6e6;
+  --color-brand: #111111;
+  --color-brand-soft: #fff3c4;
+  --color-warm: #fff3c4;
+  --color-rose: #d9415f;
+  --color-pink: #ffe4ec;
+  --color-sky: #e3f3ff;
+  --color-butter: #fff3c4;
+  --color-mint: #ddf5e8;
+  --font-sans: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-display: "Black Han Sans", "Pretendard Variable", sans-serif;
 }
 
 html, body { background: var(--color-bg); color: var(--color-ink); -webkit-tap-highlight-color: transparent; }
 body { font-family: var(--font-sans); word-break: keep-all; overflow-wrap: anywhere; }
 input, textarea, select, button { font: inherit; }
+h1, .font-display { font-family: var(--font-display); font-weight: 400 !important; letter-spacing: -0.01em; }
+.card h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.125rem; }
 
 @layer components {
-  .card { @apply rounded-2xl border border-line bg-paper p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40; }
-  .btn-outline { @apply inline-flex items-center justify-center gap-1.5 rounded-xl border border-line bg-paper px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-bg active:scale-[0.98] disabled:opacity-40; }
+  .card { @apply rounded-2xl border border-ink bg-paper p-5; }
+  .ill { @apply grid shrink-0 place-items-center rounded-full text-ink; }
+  .bubble { @apply inline-flex items-center rounded-full border-[1.5px] border-ink bg-white px-3 py-0.5 text-sm font-extrabold; }
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40; }
+  .btn-outline { @apply inline-flex items-center justify-center gap-1.5 rounded-full border-[1.5px] border-ink bg-paper px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-butter active:scale-[0.98] disabled:opacity-40; }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
-  .btn-danger { @apply inline-flex items-center justify-center rounded-xl border border-rose/30 bg-paper px-3 py-1.5 text-xs font-semibold text-rose hover:bg-rose-50 disabled:opacity-40; }
-  .input { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] outline-none focus:border-brand focus:ring-2 focus:ring-brand/20; }
+  .btn-danger { @apply inline-flex items-center justify-center rounded-full border border-rose/30 bg-paper px-3 py-1.5 text-xs font-semibold text-rose hover:bg-rose-50 disabled:opacity-40; }
+  .input { @apply w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-[15px] outline-none focus:border-ink focus:ring-2 focus:ring-butter; }
   .label { @apply mb-1.5 block text-sm font-semibold text-ink; }
-  .chip { @apply inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand; }
-  .chip-warn { @apply inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800; }
+  .chip { @apply inline-flex items-center rounded-full bg-mint px-2.5 py-0.5 text-xs font-semibold text-emerald-900; }
+  .chip-warn { @apply inline-flex items-center rounded-full bg-butter px-2.5 py-0.5 text-xs font-semibold text-amber-800; }
   .chip-gray { @apply inline-flex items-center rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600; }
-  .chip-red { @apply inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose; }
+  .chip-red { @apply inline-flex items-center rounded-full bg-pink px-2.5 py-0.5 text-xs font-semibold text-rose; }
   .table { @apply w-full text-sm; }
-  .table th { @apply whitespace-nowrap border-b border-line px-3 py-2 text-left text-xs font-semibold text-muted; }
+  .table th { @apply whitespace-nowrap border-b border-ink px-3 py-2 text-left text-xs font-semibold text-muted; }
   .table td { @apply border-b border-line/70 px-3 py-2 align-top; }
 }
 

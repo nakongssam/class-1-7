@@ -94,9 +94,9 @@ function Login() {
     <div className="grid min-h-dvh place-items-center px-5 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 grid size-16 place-items-center rounded-2xl bg-brand text-xl font-extrabold text-white">1-7</div>
-          <h1 className="text-2xl font-extrabold">우리반</h1>
-          <p className="mt-1 text-sm text-muted">출결 보고 · 칭찬 릴레이 · 스터디그룹</p>
+          <div className="mx-auto mb-3 grid size-16 place-items-center rounded-full bg-ink font-display text-xl text-white">1-7</div>
+          <h1 className="text-4xl">우리반</h1>
+          <p className="mt-1 text-sm text-muted">출결 · 칭찬 · 스터디 · 청소 · 진로</p>
         </div>
         {!setup ? (
           <form onSubmit={login} className="card space-y-4">

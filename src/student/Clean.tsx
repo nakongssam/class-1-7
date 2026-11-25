@@ -63,7 +63,10 @@ export default function CleanStudent({ me }: { me: Me }) {
 
   return (
     <>
-      <h1 className="text-xl font-extrabold">🧹 청소</h1>
+      <div className="flex items-center justify-between gap-3 border-b border-ink pb-4 pt-1">
+        <div><span className="bubble text-xs">평일 5명 · 앞뒤 + 1~4분단</span><h1 className="mt-2 text-[34px] leading-none">청소</h1></div>
+        <span className="ill size-16 bg-sky"><i className="ti ti-bucket text-4xl" aria-hidden="true" /></span>
+      </div>
 
       {toCheck.length > 0 && (
         <Section title="청소 다 했으면 체크!" className="border-amber-300 bg-amber-50">

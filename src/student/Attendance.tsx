@@ -41,7 +41,10 @@ export default function AttendanceStudent({ me }: { me: Me }) {
 
   return (
     <>
-      <h1 className="text-xl font-extrabold">🌱 출결</h1>
+      <div className="flex items-center justify-between gap-3 border-b border-ink pb-4 pt-1">
+        <div><span className="bubble text-xs">지각·조퇴·결과·결석 보고</span><h1 className="mt-2 text-[34px] leading-none">출결</h1></div>
+        <span className="ill size-16 bg-sky"><i className="ti ti-calendar-check text-4xl" aria-hidden="true" /></span>
+      </div>
       {pending.map((c) => (
         <Section key={c.month} title={`📋 ${monthLabel(c.month)} 출결 확인`} className="border-amber-300 bg-amber-50">
           <p className="text-sm text-muted">아래 '내 기록'에서 {monthLabel(c.month)} 기록이 맞는지 보고, 맞으면 확인을 눌러 주세요. 다르면 선생님께 말씀드려요.</p>

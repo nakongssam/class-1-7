@@ -76,7 +76,10 @@ export default function RelayStudent({ me }: { me: Me }) {
 
   return (
     <>
-      <h1 className="text-xl font-extrabold">💌 칭찬 릴레이</h1>
+      <div className="flex items-center justify-between gap-3 border-b border-ink pb-4 pt-1">
+        <div><span className="bubble text-xs">친구의 강점을 찾아 전해요</span><h1 className="mt-2 text-[34px] leading-none">칭찬 릴레이</h1></div>
+        <span className="ill size-16 bg-pink"><i className="ti ti-heart-handshake text-4xl" aria-hidden="true" /></span>
+      </div>
       <Tabs tabs={SUB} value={sub} onChange={setSub} />
       {sub === SUB[0] && (
         <>
