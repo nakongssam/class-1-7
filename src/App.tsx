@@ -110,7 +110,7 @@ function Login() {
               <label className="label" htmlFor="cred">비밀번호</label>
               <input id="cred" className="input text-lg tracking-widest" type="password" inputMode="numeric" autoComplete="current-password" maxLength={8}
                 placeholder="숫자 4자리" value={cred} onChange={(e) => setCred(e.target.value.replace(/\D/g, ""))} />
-              <p className="mt-1.5 text-xs leading-relaxed text-muted">칭찬 릴레이에서 쓰던 비밀번호 그대로예요. 처음이거나 선생님이 초기화했다면 생년월일 6자리를 넣어요.</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted">처음이거나 선생님이 초기화했다면 생년월일 6자리를 넣어요.</p>
             </div>
             {err && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose">{err}</p>}
             <button className="btn w-full py-3 text-base" disabled={busy || !no || !cred}>{busy ? "확인 중…" : "로그인"}</button>
