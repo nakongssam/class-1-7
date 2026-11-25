@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Me } from "../App";
-import { CareerView, composeSection, EMOJIS, FIELDS, GOAL_TYPES, loadCareer, qText, SECTIONS, type CareerCard } from "../lib/career";
+import { CareerView, composeSection, EMOJI_ICON, EMOJIS, FIELDS, GOAL_TYPES, loadCareer, qText, SECTIONS, type CareerCard } from "../lib/career";
 import { supabase } from "../lib/supabase";
 import { errMsg } from "../lib/util";
 import { Empty, Loading, Section, Tabs, useToast } from "../ui/kit";
@@ -21,18 +21,17 @@ export function Reactions({ d, cardId, me, onChange }: { d: Data; cardId: string
     onChange?.();
   };
   return (
-    <div className="mt-4 flex gap-2 border-t border-line pt-3">
+    <div className="mt-4 flex flex-wrap gap-1.5 border-t border-line pt-3">
       {EMOJIS.map((e) => {
         const n = d.reactions.filter((r) => r.card_id === cardId && r.emoji === e).length;
         const mine = d.reactions.some((r) => r.card_id === cardId && r.reactor_id === me && r.emoji === e);
         return (
           <button key={e} onClick={() => toggle(e)} disabled={!me || me === cardId}
-            className={`rounded-full border px-3 py-1 text-sm ${mine ? "border-brand bg-brand-soft font-bold" : "border-line bg-paper"} disabled:cursor-default`}>
-            {e} {n || ""}
+            className={`rounded-full border px-3 py-1 text-sm ${mine ? "border-brand bg-brand-soft font-bold text-brand" : "border-line bg-paper"} disabled:cursor-default`}>
+            {EMOJI_ICON[e]} {e}{n > 0 && <b className="ml-1">{n}</b>}
           </button>
         );
       })}
-      <span className="ml-auto self-center text-[11px] text-muted">👍 응원해 · 💡 좋은 생각 · 🔥 멋져</span>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { supabase } from "./supabase";
 
 export const FIELDS = ["공학·IT", "자연·의약", "인문·사회", "경영·경제", "교육", "예술·디자인", "체육", "기타"] as const;
-export const EMOJIS = ["👍", "💡", "🔥"] as const;
+export const EMOJIS = ["멋진 꿈이야", "응원해!", "나도 관심 있어", "많이 배웠어"] as const;
+export const EMOJI_ICON: Record<string, string> = { "멋진 꿈이야": "✨", "응원해!": "📣", "나도 관심 있어": "🙋", "많이 배웠어": "💡" };
 export const GOAL_TYPES = [
   { id: "job", label: "희망 진로" },
   { id: "major", label: "희망 학과" },
