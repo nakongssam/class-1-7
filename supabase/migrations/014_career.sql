@@ -1,0 +1,6 @@
+-- 014: 진로 카드 (DB에 적용 완료)
+-- career_cards(student_id pk, goal_type job|major|explore, goal, field, past, present, subjects, future, published)
+--   읽기: 본인·공개된 카드·교사 / 쓰기: 본인(교사 수정 가능)
+-- career_reactions(card_id, reactor_id, emoji 👍💡🔥) 공개 카드에만, 본인 카드 제외
+-- career_drafts(student_id, content, note) 교사 전용 / ai 함수 career_draft
+-- clean_signup: 쉬는 날 신청은 횟수에서 제외

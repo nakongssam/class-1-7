@@ -7,6 +7,7 @@ import AttendanceStudent from "./Attendance";
 import RelayStudent from "./Relay";
 import StudyStudent from "./Study";
 import CleanStudent, { RatingButtons } from "./Clean";
+import CareerStudent from "./Career";
 import { roleLabel, type CleanSlot } from "../lib/clean";
 import { DutyBoard, dutyItems, type DutyRow } from "../lib/duties";
 
@@ -16,6 +17,7 @@ const TABS = [
   { id: "relay", label: "칭찬", icon: "💌" },
   { id: "study", label: "스터디", icon: "📚" },
   { id: "clean", label: "청소", icon: "🧹" },
+  { id: "career", label: "진로", icon: "🎯" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -50,9 +52,10 @@ export default function StudentApp({ me }: { me: Me }) {
         {tab === "relay" && <RelayStudent me={me} />}
         {tab === "study" && <StudyStudent me={me} />}
         {tab === "clean" && <CleanStudent me={me} />}
+        {tab === "career" && <CareerStudent me={me} />}
       </main>
       <nav className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="메뉴">
-        <div className="mx-auto grid max-w-2xl grid-cols-5">
+        <div className="mx-auto grid max-w-2xl grid-cols-6">
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}
               className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold ${tab === t.id ? "text-brand" : "text-muted"}`}>

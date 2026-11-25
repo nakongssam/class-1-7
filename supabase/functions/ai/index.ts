@@ -2,6 +2,7 @@
 // - submit_message: 칭찬 편지 AI 검사 후 저장 (AI가 실패해도 편지는 저장하고 교사 검토로 넘김)
 // - soften: 교사용 편지 순화
 // - record_draft: 교사용 생기부 초안 (확정된 스터디 일지 + 교사 메모 기반, 500자)
+// - career_draft: 교사용 진로활동 초안 (진로 카드 + 교사 메모, 500자)
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
@@ -68,6 +69,14 @@ const DRAFT = `당신은 한국 고등학교 담임교사로서 학교생활기�
 - 교내 스터디그룹(과목별 멘토-멘티) 학습 활동에서 드러난 구체적 행동, 성장, 태도를 근거로 서술. 멘토로 가르친 과목과 멘티로 배운 과목을 구분해 서술.
 - 교외 활동, 대학명, 기관명, 부모(가족)의 직업·정보는 절대 언급하지 않음.
 - 과장 없이 기록에 근거한 사실만 사용. 제목, 따옴표, 목록 기호 없이 본문만 출력.`;
+
+const CAREER = `당신은 한국 고등학교 담임교사로서 학교생활기록부 '창의적 체험활동 - 진로활동 특기사항'에 들어갈 문장을 작성합니다.
+규칙:
+- 학생 이름이나 주어 없이 문장을 시작하고, 반드시 '~함', '~임', '~보임' 등 생활기록부 명사형 종결 문체로 씀.
+- 공백 포함 500자 이내의 한 문단으로 작성.
+- 학급 진로 탐색 활동(자신의 진로를 글로 정리해 학급에 공유하는 활동)에서 드러난 진로 관심의 계기, 탐색한 내용, 진로를 위한 노력, 포부를 근거로 구체적으로 서술.
+- 대학명, 기관명, 특정 인물의 실명, 부모(가족)의 직업·정보, 교외 수상·사교육은 절대 언급하지 않음. 롤모델은 '관심 분야의 전문가' 등으로 일반화.
+- 과장 없이 학생 글과 교사 메모에 근거한 사실만 사용. 제목, 따옴표, 목록 기호 없이 본문만 출력.`;
 
 const NORMALIZE = `학생들이 반 친구의 강점으로 적은 표현 목록을 받는다. 각 표현을 집계하기 좋은 짧은 표준 강점 키워드로 정리해.
 규칙:
@@ -212,6 +221,22 @@ Deno.serve(async (req) => {
       let content = await claude(DRAFT, `그룹 내 역할: ${roles}\n확정된 활동 기록:\n\n${lines}`, DRAFT_MODELS, 1200);
       if (content.length > 500) content = content.slice(0, 500);
       await sb.from("record_drafts").upsert({ student_id: studentId, content, updated_at: new Date().toISOString() });
+      return json({ ok: true, content });
+    }
+
+    if (action === "career_draft") {
+      const studentId = String(body.studentId ?? "");
+      const { data: c } = await sb.from("career_cards").select("*").eq("student_id", studentId).maybeSingle();
+      if (!c) return json({ ok: false, error: "진로 카드가 없어요." });
+      const { data: dr } = await sb.from("career_drafts").select("note").eq("student_id", studentId).maybeSingle();
+      const kind = c.goal_type === "major" ? "희망 학과" : c.goal_type === "explore" ? "탐색 중인 관심 분야" : "희망 진로";
+      const prompt = `${kind}: ${c.goal || "(미정)"}${c.field ? ` (분야: ${c.field})` : ""}
+[시작 - 꿈을 갖게 된 계기] ${c.past || "(없음)"}
+[지금 - 알게 된 것과 노력] ${c.present || "(없음)"}${c.subjects ? `\n[고2 희망 선택과목] ${c.subjects}` : ""}
+[미래 - 포부] ${c.future || "(없음)"}${dr?.note ? `\n[교사 관찰] ${dr.note}` : ""}`;
+      let content = await claude(CAREER, prompt, DRAFT_MODELS, 1200);
+      if (content.length > 500) content = content.slice(0, 500);
+      await sb.from("career_drafts").upsert({ student_id: studentId, content, note: dr?.note ?? "", updated_at: new Date().toISOString() });
       return json({ ok: true, content });
     }
 
