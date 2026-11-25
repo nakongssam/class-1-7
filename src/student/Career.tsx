@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Me } from "../App";
-import { CareerView, EMOJIS, FIELDS, GOAL_TYPES, loadCareer, SECTIONS, type CareerCard } from "../lib/career";
+import { CareerView, composeSection, EMOJIS, FIELDS, GOAL_TYPES, loadCareer, qText, SECTIONS, type CareerCard } from "../lib/career";
 import { supabase } from "../lib/supabase";
 import { errMsg } from "../lib/util";
 import { Empty, Loading, Section, Tabs, useToast } from "../ui/kit";
 
 type Data = Awaited<ReturnType<typeof loadCareer>>;
 const SUB = ["내 진로 카드", "반 진로 갤러리"] as const;
-const blank = (id: string): CareerCard => ({ student_id: id, goal_type: "job", goal: "", field: "", past: "", present: "", subjects: "", future: "", published: false, published_at: null, updated_at: "" });
+const blank = (id: string): CareerCard => ({ student_id: id, goal_type: "job", goal: "", field: "", past: "", present: "", subjects: "", future: "", answers: {}, published: false, published_at: null, updated_at: "" });
 
 export function Reactions({ d, cardId, me, onChange }: { d: Data; cardId: string; me?: string; onChange?: () => void }) {
   const toast = useToast();
@@ -61,10 +61,12 @@ export default function CareerStudent({ me }: { me: Me }) {
 
   const save = async (publish?: boolean) => {
     if (!f.goal.trim() && f.goal_type !== "explore") return toast("희망 진로나 학과를 적어 주세요.", "err");
-    if (publish && !f.past.trim() && !f.present.trim() && !f.future.trim()) return toast("시작·지금·미래 중 하나는 써야 공개할 수 있어요.", "err");
+    const answers = f.answers ?? {};
+    const composed = Object.fromEntries(SECTIONS.map((sec) => [sec.key, composeSection(sec, answers, f.goal_type)])) as Record<"past" | "present" | "future", string>;
+    if (publish && !composed.past && !composed.present && !composed.future) return toast("시작·지금·미래 중 하나는 써야 공개할 수 있어요.", "err");
     setBusy(true);
     const pub = publish ?? f.published;
-    const row = { ...f, goal: f.goal.trim(), subjects: f.subjects.trim(), published: pub, published_at: pub ? (f.published_at ?? new Date().toISOString()) : null, updated_at: new Date().toISOString() };
+    const row = { ...f, ...composed, answers, goal: f.goal.trim(), published: pub, published_at: pub ? (f.published_at ?? new Date().toISOString()) : null, updated_at: new Date().toISOString() };
     const { error } = await supabase.from("career_cards").upsert(row);
     setBusy(false);
     if (error) return toast(errMsg(error), "err");
@@ -106,15 +108,21 @@ export default function CareerStudent({ me }: { me: Me }) {
                 {FIELDS.map((x) => <button key={x} type="button" onClick={() => setF({ ...f, field: f.field === x ? "" : x })} className={f.field === x ? "btn btn-sm" : "btn-outline btn-sm"}>{x}</button>)}
               </div>
             </div>
-            {SECTIONS.map((s) => (
-              <div key={s.key}>
-                <label className="label" htmlFor={`c-${s.key}`}>{s.icon} {s.title} — {s.q}</label>
-                <p className="-mt-1 mb-1.5 text-xs text-muted">{s.hint}</p>
-                <textarea id={`c-${s.key}`} className="input min-h-28" maxLength={2000} value={f[s.key]} onChange={(e) => setF({ ...f, [s.key]: e.target.value })} />
-                {s.key === "present" && (
-                  <input className="input mt-2 text-sm" maxLength={200} value={f.subjects} onChange={(e) => setF({ ...f, subjects: e.target.value })} placeholder="고2 때 듣고 싶은 선택과목 (선택) 예: 물리학, 정보, 기하" />
-                )}
-              </div>
+            {SECTIONS.map((sec) => (
+              <fieldset key={sec.key} className="rounded-xl border border-line bg-white p-4">
+                <legend className="px-1 font-bold">{sec.icon} {sec.title} <span className="font-normal text-muted">— {sec.q}</span></legend>
+                <div className="space-y-3">
+                  {sec.items.map((it) => (
+                    <div key={it.key}>
+                      <label className="mb-1 block text-sm font-semibold" htmlFor={`c-${it.key}`}>
+                        {qText(it, f.goal_type)} {it.optional && <span className="text-xs font-normal text-muted">(선택)</span>}
+                      </label>
+                      <textarea id={`c-${it.key}`} className="input min-h-20 text-sm" maxLength={600} placeholder={it.ph}
+                        value={f.answers?.[it.key] ?? ""} onChange={(e) => setF({ ...f, answers: { ...(f.answers ?? {}), [it.key]: e.target.value } })} />
+                    </div>
+                  ))}
+                </div>
+              </fieldset>
             ))}
             <div className="flex flex-wrap gap-2">
               <button className="btn-outline" disabled={busy} onClick={() => save()}>저장 (나만 보기)</button>

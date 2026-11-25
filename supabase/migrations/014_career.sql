@@ -4,3 +4,4 @@
 -- career_reactions(card_id, reactor_id, emoji 👍💡🔥) 공개 카드에만, 본인 카드 제외
 -- career_drafts(student_id, content, note) 교사 전용 / ai 함수 career_draft
 -- clean_signup: 쉬는 날 신청은 횟수에서 제외
+-- 015: career_cards.answers jsonb (세부 질문별 답), 선택과목 칸 화면에서 제거

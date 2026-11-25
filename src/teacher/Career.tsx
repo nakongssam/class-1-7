@@ -30,8 +30,8 @@ export default function CareerTeacher() {
       <Section title="🎯 진로 카드 현황" right={
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted">공개 {nPub} · 작성 중 {nDraft} · 안 씀 {realPeople.length - nPub - nDraft}</span>
-          <button className="btn-outline btn-sm" onClick={() => downloadCsv("1-7_진로카드.csv", [["학번", "이름", "구분", "희망", "분야", "시작", "지금", "고2 선택과목", "미래", "공개"],
-            ...people.map((p) => { const x = card(p.id); return [p.student_no, p.name, x?.goal_type ?? "", x?.goal ?? "", x?.field ?? "", x?.past ?? "", x?.present ?? "", x?.subjects ?? "", x?.future ?? "", x ? (x.published ? "공개" : "작성 중") : "안 씀"]; })])}>CSV</button>
+          <button className="btn-outline btn-sm" onClick={() => downloadCsv("1-7_진로카드.csv", [["학번", "이름", "구분", "희망", "분야", "시작", "지금", "미래", "공개"],
+            ...people.map((p) => { const x = card(p.id); return [p.student_no, p.name, x?.goal_type ?? "", x?.goal ?? "", x?.field ?? "", x?.past ?? "", x?.present ?? "", x?.future ?? "", x ? (x.published ? "공개" : "작성 중") : "안 씀"]; })])}>CSV</button>
         </div>}>
         <div className="overflow-x-auto">
           <table className="table min-w-[520px]">
