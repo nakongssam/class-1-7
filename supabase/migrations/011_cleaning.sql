@@ -3,3 +3,4 @@
 -- clean_days_off(day, reason), clean_slots(day, role[front_back|col1..col4], student_id, self_rating 상/중/하, done_at, assigned_by_teacher)
 -- RPC: clean_signup(_day,_role), clean_cancel(_day), clean_check(_day,_rating), clean_roster()
 -- 학생은 RPC로만 쓰기, 교사는 테이블 직접 관리
+-- students.clean_exempt: 청소만 제외 (clean_roster에서 빠지고 clean_signup 거부). 10708 김보민 적용
