@@ -84,6 +84,17 @@ export default function CleanTeacher() {
   };
 
   const left = leftovers(d);
+  const noticeDay = sel ?? today;
+  const notice = (() => {
+    const head = `🧹 ${formatDay(noticeDay)} 청소 당번`;
+    if (d.off.has(noticeDay)) return `${head}\n\n오늘은 청소 없는 날이에요${d.off.get(noticeDay) ? ` (${d.off.get(noticeDay)})` : ""} 😊`;
+    if (!isWeekday(noticeDay)) return `${head}\n\n주말이라 청소가 없어요 😊`;
+    const lines = ROLES.map((r) => {
+      const x = d.slots.find((s) => s.day === noticeDay && s.role === r.id);
+      return `${r.label} ${x ? nameOf(d, x.student_id) : "(빈자리)"}`;
+    });
+    return `${head}\n\n${lines.join("\n")}\n\n끝나면 앱에서 상·중·하 체크 꼭 해 주세요! ✅\n👉 nakongssam.github.io/class-1-7`;
+  })();
   const unchecked = d.slots.filter((s) => s.day < today && !s.done_at);
   const selSlots = sel ? d.slots.filter((s) => s.day === sel) : [];
   const others = d.roster;
@@ -136,6 +147,10 @@ export default function CleanTeacher() {
         <Section title="개인별 청소 횟수"><CleanCountGrid d={d} today={today} /></Section>
       </div>
       <div className="space-y-4">
+        <Section title="청소 당번 안내 문구" right={<button className="btn btn-sm" onClick={() => { navigator.clipboard.writeText(notice); toast("복사했어요. 반톡에 붙여 넣으세요."); }}>복사</button>}>
+          <p className="-mt-2 mb-2 text-xs text-muted">{sel ? "달력에서 고른 날짜" : "오늘"} 기준이에요. 다른 날은 달력에서 날짜를 눌러요.</p>
+          <pre className="whitespace-pre-wrap rounded-xl bg-brand-soft p-3 font-sans text-sm leading-relaxed">{notice}</pre>
+        </Section>
         <Section title="신청 기간">
           <div className="grid grid-cols-2 gap-2">
             <div><label className="label">시작</label><input type="date" className="input" value={cfg.from} onChange={(e) => setCfg({ ...cfg, from: e.target.value })} /></div>
